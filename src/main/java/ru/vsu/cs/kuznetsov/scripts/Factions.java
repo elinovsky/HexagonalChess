@@ -2,5 +2,6 @@ package ru.vsu.cs.kuznetsov.scripts;
 
 public enum Factions {
     BLACK,
-    WHITE
+    WHITE,
+    NO_FIGURE
 }
