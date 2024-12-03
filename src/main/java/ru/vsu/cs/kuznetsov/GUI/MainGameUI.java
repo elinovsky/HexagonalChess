@@ -44,11 +44,11 @@ public class MainGameUI extends JFrame{
             public void mouseClicked(MouseEvent e) {
                 double rectTCY = (graphicPanel.getHeight() - 11 * cellHeight) / 2.0;
                 double rectTCX = graphicPanel.getWidth() / 2.0 - 3.75 * cellWidth;
-                int cellYHalfNum = (int)((e.getY() - rectTCY) / cellHeight);
-                int cellXHalfNum = (int)((e.getX() - rectTCX) / (1.5 * cellWidth));
-                int col = 1 + 2 * cellXHalfNum;
-                int row = (10 - cellYHalfNum) - Math.abs(col - 5) / 2;
-                if (cellYHalfNum < 0 || cellYHalfNum > 10 || cellXHalfNum < 0 || cellXHalfNum > 4) {
+                int subrectTopY = (int)((e.getY() - rectTCY) / cellHeight);
+                int subrectLeftX = (int)((e.getX() - rectTCX) / (1.5 * cellWidth));
+                int col = 1 + 2 * subrectLeftX;
+                int row = (10 - subrectTopY) - Math.abs(col - 5) / 2;
+                if (subrectTopY < 0 || subrectTopY > 10 || subrectLeftX < 0 || subrectLeftX > 4) {
                     return;
                 }
                 if ((e.getX() - rectTCX) % (1.5 * cellWidth) <

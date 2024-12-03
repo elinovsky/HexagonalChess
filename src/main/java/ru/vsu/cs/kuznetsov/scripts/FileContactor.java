@@ -12,9 +12,6 @@ import java.util.List;
 
 public class FileContactor {
     public static Image readImageForFigure(String imgName) throws Exception{
-//        URL u = FileContactor.class.getProtectionDomain().getCodeSource().getLocation();
-//        System.out.println(Paths.get(u.toString(), "assets",
-//                fig.getImageName()).toAbsolutePath().toString());
         String path = Paths.get("assets",
                 imgName).toAbsolutePath().toString();
         return ImageIO.read(new File(path));
