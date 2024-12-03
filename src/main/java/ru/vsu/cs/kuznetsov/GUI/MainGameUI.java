@@ -8,6 +8,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,7 +29,16 @@ public class MainGameUI extends JFrame{
         setSize(700, 700);
         setContentPane(mainPanel);
         setVisible(true);
-        setTitle("Шахматы Глинского");
+        setTitle("Шахматы Глинского. Выбирать фигуры и ходить ими нажатием мыши!");
+        //TODO: remove after adding features
+        JOptionPane.showMessageDialog(null,
+                "Здравствуйте! Это не завершённая версия приложения.\n" +
+                        "Отсутствует опознание мата и пата, поэтому, чтобы выиграть, \n" +
+                        "один из игроков должен попытаться атакавать короля другого \n" +
+                        "на своём ходу. Не реализованы некоторые возможности пешек. \n" +
+                        "Возможны баги.");
+        //Mouse listener, reacting only on click, defining which cell was pressed.
+        //Calls UI reaction function on game event.
         graphicPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -41,29 +51,23 @@ public class MainGameUI extends JFrame{
                 if (cellYHalfNum < 0 || cellYHalfNum > 10 || cellXHalfNum < 0 || cellXHalfNum > 4) {
                     return;
                 }
-                Graphics g = graphicPanel.getGraphics();
-                g.setColor(Color.cyan);
-                g.drawRect((int)rectTCX, (int)rectTCY, (int)(7.5 * cellWidth), 11 * cellHeight);
-                g.drawRect((int)(rectTCX + cellXHalfNum * (1.5 * cellWidth)),
-                        (int)rectTCY + cellYHalfNum * cellHeight, (int)(1.5 * cellWidth), cellHeight);
                 if ((e.getX() - rectTCX) % (1.5 * cellWidth) <
                         (cellWidth / 4.0 + 0.6 * Math.abs((e.getY() - rectTCY) % cellHeight - cellHeight / 2.0))){
                     if (col > 5 && (e.getY() - rectTCY) % cellHeight < (double) cellHeight / 2){
                         row += 1;
-                    } else if (col < 5 && (e.getY() - rectTCY) % cellHeight > (double) cellHeight / 2) {
+                    } else if (col <= 5 && (e.getY() - rectTCY) % cellHeight > (double) cellHeight / 2) {
                         row -= 1;
                     }
                     col -= 1;
                 } else if ((e.getX() - rectTCX) % (1.5 * cellWidth) >
                         (1.25 * cellWidth - 0.6 * Math.abs((e.getY() - rectTCY) % cellHeight - cellHeight / 2.0))) {
-                    if (col > 5 && (e.getY() - rectTCY) % cellHeight > (double) cellHeight / 2){
+                    if (col >= 5 && (e.getY() - rectTCY) % cellHeight > (double) cellHeight / 2){
                         row -= 1;
                     } else if (col < 5 && (e.getY() - rectTCY) % cellHeight < (double) cellHeight / 2) {
                         row += 1;
                     }
                     col += 1;
                 }
-                System.out.println(col + " " + row);
                 if (game.getBoard().isCoordinatesValid(HexagonalMap.validLetters[col], row + 1)) {
                     gameListener(game.cellClicked(HexagonalMap.validLetters[col], row + 1));
                 }
@@ -74,8 +78,16 @@ public class MainGameUI extends JFrame{
     public void paint(Graphics g){
         super.paint(g);
         paintBoard();
+        showMoves(game.getSelectedMoves());
     }
 
+//    public void repaint(){
+//
+//    }
+
+    /**
+     * Wipe graphicsPlane and paint game board on it
+     */
     public void paintBoard(){
         Graphics g = graphicPanel.getGraphics();
         g.clearRect(0, 0, graphicPanel.getWidth(), graphicPanel.getHeight());
@@ -99,7 +111,7 @@ public class MainGameUI extends JFrame{
                 Figure cellStander = boardCells.next().getFigure();
                 if (cellStander != null) {
                     try {
-                        Image img = FileContactor.readImageForFigure(cellStander);
+                        Image img = FileContactor.readImageForFigure(cellStander.getImageName());
                         g.drawImage(img, cellX + (cellWidth - 40)/2, cellY - (cellHeight - 50)/2,
                                 40, 40, null);
                     } catch (Exception ex) {
@@ -114,8 +126,11 @@ public class MainGameUI extends JFrame{
         }
     }
 
+    /**
+     * UI reaction on game event
+     * @param respond - code of game event
+     */
     public void gameListener(GameResponds respond){
-        System.out.println(respond);
         switch (respond){
             case FIGURE_DESELECTED -> paintBoard();
             case FIGURE_SELECTED -> showMoves(game.getSelectedMoves());
@@ -141,10 +156,42 @@ public class MainGameUI extends JFrame{
                     messageLable.setText("Ход белых");
                 }
             }
+            case FIGURE_RESELECTED -> {
+                paintBoard();
+                showMoves(game.getSelectedMoves());
+            }
         }
     }
 
     public void showMoves(List<HexagonalMap.Position> moves){
-
+        if (moves == null){
+            return;
+        }
+        String toGetIndex = new String(HexagonalMap.validLetters);
+        int rectBottomLeftX = (int)(graphicPanel.getWidth() / 2.0 - 3.75 * cellWidth);
+        int rectBottomLeftY = (int)((graphicPanel.getHeight() + 11 * cellHeight) / 2.0);
+        Graphics g = graphicPanel.getGraphics();
+        g.setColor(new Color(0x61898989, true));
+        HexagonalMap board = game.getBoard();
+        for (HexagonalMap.Position p : moves){
+            int colInd = toGetIndex.indexOf(p.getCol());
+            if (!board.isCoordinatesValid(p)) {
+                continue;
+            }
+            int posX = (int) (rectBottomLeftX + cellWidth * (colInd * 0.75 - 0.25));
+            int posY = (int) (rectBottomLeftY + cellHeight * (0.25 - Math.abs(colInd - 5) / 2.0 - p.getRow()));
+            if (p.getFigure() ==null) {
+                g.fillOval(posX, posY, cellWidth / 2, cellHeight / 2);
+            } else {
+                try {
+                    Image img = FileContactor.readImageForFigure("targetMark.png");
+                    g.drawImage(img, posX - cellWidth / 4, posY - cellHeight / 4,
+                            cellWidth, cellHeight, null);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null,
+                            "Не удалось найти изображение targetMark.png.");
+                }
+            }
+        }
     }
 }

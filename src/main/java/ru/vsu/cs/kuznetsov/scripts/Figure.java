@@ -14,8 +14,8 @@ public abstract class Figure {
     protected HexagonalMap actionField;
 
     protected final int[][] pathsToDiagonal = new int[][]{
-            {0, 5}, {1, 0}, {2, 1},
-            {3, 2}, {4, 5}, {5, 0}
+            {0, 5}, {0, 1}, {2, 1},
+            {2, 3}, {4, 3}, {4, 5}
     };
 
     /**
@@ -96,10 +96,12 @@ public abstract class Figure {
     public static class Pawn extends Figure{
         private int forwardDirection;
         private HexagonalMap.Position inPassing;
+        private boolean canDoLongStep;
 
         public Pawn(HexagonalMap actionField, HexagonalMap.Position position, Factions faction){
             super(actionField, position, faction);
             inPassing = null;
+            canDoLongStep = true;
             if (faction == Factions.WHITE) {
                 forwardDirection = 0;
             } else {
@@ -114,12 +116,12 @@ public abstract class Figure {
             if (pos != null && pos.getFigure() == null){
                 res.add(pos);
                 pos = actionField.getPositionByDir(pos, forwardDirection);
-                if (pos != null && pos.getFigure() == null) {
+                if (canDoLongStep && pos != null && pos.getFigure() == null) {
                     res.add(pos);
                 }
             }
             for (HexagonalMap.Position p : getAttackingCells()){
-                if (pos != null && p.getFigure().getFaction() != this.faction){
+                if (p.getFigure() != null && p.getFigure().getFaction() != this.faction){
                     res.add(p);
                 }
             }
@@ -132,7 +134,7 @@ public abstract class Figure {
         @Override
         public List<HexagonalMap.Position> getAttackingCells() {
             List<HexagonalMap.Position> res = new ArrayList<>();
-            for (int i = forwardDirection - 1; i <= forwardDirection; i += 2){
+            for (int i = forwardDirection - 1; i <= forwardDirection + 1; i += 2){
                 HexagonalMap.Position attacking = actionField.getPositionByDir(position, i);
                 if (attacking != null) {
                     res.add(attacking);
@@ -156,17 +158,18 @@ public abstract class Figure {
 
         @Override
         public void moveTo(HexagonalMap.Position cell) {
-            if (Math.abs(cell.getRow() - position.getRow()) == 2){
-                Figure left = actionField.getPosAfterPath(position, new int[]{forwardDirection, forwardDirection - 1}).getFigure();
-                Figure right = actionField.getPosAfterPath(position, new int[]{forwardDirection, forwardDirection + 1}).getFigure();
-                if (left != null && left.getClass() == this.getClass()){
-                    Pawn p = (Pawn) left;
-                    p.inPassing = new HexagonalMap.Position(this, actionField.getPositionByDir(position, forwardDirection));
-                }
-                if (right != null && right.getClass() == this.getClass()){
-                    Pawn p = (Pawn) right;
-                    p.inPassing = new HexagonalMap.Position(this, actionField.getPositionByDir(position, forwardDirection));
-                }
+            if (Math.abs(cell.getRow() - position.getRow()) == 2 && canDoLongStep){
+//                Figure left = actionField.getPosAfterPath(position, new int[]{forwardDirection, forwardDirection - 1}).getFigure();
+//                Figure right = actionField.getPosAfterPath(position, new int[]{forwardDirection, forwardDirection + 1}).getFigure();
+//                if (left != null && left.getClass() == this.getClass()){
+//                    Pawn p = (Pawn) left;
+//                    p.inPassing = new HexagonalMap.Position(this, actionField.getPositionByDir(position, forwardDirection));
+//                }
+//                if (right != null && right.getClass() == this.getClass()){
+//                    Pawn p = (Pawn) right;
+//                    p.inPassing = new HexagonalMap.Position(this, actionField.getPositionByDir(position, forwardDirection));
+//                }
+                canDoLongStep = false;
             }
             super.moveTo(cell);
         }
@@ -362,7 +365,7 @@ public abstract class Figure {
                 }
                 case BLACK -> {
                     if (isAttacked){
-                        return "whiteKingWarning.png";
+                        return "blackKingWarning.png";
                     }
                     return "blackKing.png";
                 }

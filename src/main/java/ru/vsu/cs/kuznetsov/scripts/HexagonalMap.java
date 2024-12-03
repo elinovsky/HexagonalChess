@@ -87,14 +87,21 @@ public class HexagonalMap {
                 Cell newOne = new Cell(validLetters[i], j + 1);
                 map[i][j] = newOne;
                 if (j > 0) {
-                    map[i][j - 1].symmetrySetNeighbour(5, newOne);
+                    map[i][j - 1].symmetrySetNeighbour(0, newOne);
                 }
-                if (i > 0){
-                    if (j > 0) {
-                        map[i - 1][j - 1].symmetrySetNeighbour(4, newOne);
-                    }
-                    if (j < map[i - 1].length){
-                        map[i - 1][j].symmetrySetNeighbour(5, newOne);
+                if (i > 0) {
+                    if (i <= 5) {
+                        if (j > 0) {
+                            map[i - 1][j - 1].symmetrySetNeighbour(1, newOne);
+                        }
+                        if (j < map[i - 1].length) {
+                            map[i - 1][j].symmetrySetNeighbour(2, newOne);
+                        }
+                    } else {
+                        map[i - 1][j].symmetrySetNeighbour(1, newOne);
+                        if (j < map[i - 1].length - 1) {
+                            map[i - 1][j + 1].symmetrySetNeighbour(2, newOne);
+                        }
                     }
                 }
             }
@@ -106,6 +113,10 @@ public class HexagonalMap {
             return false;
         }
         return (row >= 1 && row <= 11 - Math.abs((col < 'j'?col - 'a':col - 'a' - 1) - 5));
+    }
+
+    public boolean isCoordinatesValid(Position p){
+        return isCoordinatesValid(p.col, p.row);
     }
 
     private Cell getCellNotSafe(int col, int row){
