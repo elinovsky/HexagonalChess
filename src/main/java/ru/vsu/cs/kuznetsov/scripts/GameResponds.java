@@ -7,5 +7,6 @@ public enum GameResponds {
     NO_ANSWER,
     TURN_DONE,
     WHITE_WIN,
-    BLACK_WIN
+    BLACK_WIN,
+    PAWN_CHANGE_REQUIRED
 }

@@ -1,11 +1,10 @@
 package ru.vsu.cs.kuznetsov.scripts;
 
-import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public abstract class Figure {
 
@@ -31,14 +30,23 @@ public abstract class Figure {
     public List<HexagonalMap.Position> getMoveOptions(){
         return null;
     }
+
     public void moveTo(HexagonalMap.Position cell){
         actionField.setFigure(position.getCol(), position.getRow(), null);
         position = cell;
         actionField.setFigure(cell.getCol(), cell.getRow(), this);
     }
 
+    public static final String getFactionName(Factions faction){
+        switch (faction){
+            case BLACK -> {return "black";}
+            case WHITE -> {return "white";}
+        }
+        return "";
+    }
+
     /**
-     * @return cells which can be attacked from figure
+     * @return cells which can be attacked from this figure if enemy figure appears on it
      */
     public List<HexagonalMap.Position> getAttackingCells(){
         return null;
@@ -51,21 +59,23 @@ public abstract class Figure {
     }
 
     /**
-     * @return list of empty position with attacked positions from posList keeps order stops on first met attacked position
-     */
-    protected List<HexagonalMap.Position> getEmptyAndAttacking(List<HexagonalMap.Position> posList){
+     * @return list of empty positions in one line ended with position where predicate is true
+     * */
+    protected List<HexagonalMap.Position> getCellsFromLineByPredicate(List<HexagonalMap.Position> posList,
+            Predicate<HexagonalMap.Position> predicate){
+        if(posList == null){
+            return null;
+        }
         List<HexagonalMap.Position> result = new ArrayList<>();
-        Iterator<HexagonalMap.Position> posIterator = posList.iterator();
-        HexagonalMap.Position pos = null;
-        while (posIterator.hasNext()){
-            pos = posIterator.next();
-            if (pos.getFigure() != null) {
+        for(HexagonalMap.Position pos : posList){
+            if (pos.getFigure() == null){
+                result.add(pos);
+            } else if (predicate.test(pos)){
+                result.add(pos);
+                break;
+            } else {
                 break;
             }
-            result.add(pos);
-        }
-        if (pos != null && pos.getFigure() != null && pos.getFigure().getFaction() != this.getFaction()){
-            result.add(pos);
         }
         return result;
     }
@@ -145,15 +155,7 @@ public abstract class Figure {
 
         @Override
         public String getImageName() {
-            switch (faction){
-                case WHITE -> {
-                    return "whitePawn.png";
-                }
-                case BLACK -> {
-                    return "blackPawn.png";
-                }
-            }
-            return "";
+            return getFactionName(this.faction) + "Pawn.png";
         }
 
         @Override
@@ -169,8 +171,8 @@ public abstract class Figure {
 //                    Pawn p = (Pawn) right;
 //                    p.inPassing = new HexagonalMap.Position(this, actionField.getPositionByDir(position, forwardDirection));
 //                }
-                canDoLongStep = false;
             }
+            canDoLongStep = false;
             super.moveTo(cell);
         }
     }
@@ -201,20 +203,25 @@ public abstract class Figure {
 
         @Override
         public List<HexagonalMap.Position> getAttackingCells() {
-            return getMoveOptions();
+            List<HexagonalMap.Position> res = new ArrayList<>();
+            int[][] gShapedPaths = new int[][]{
+                    {0, 0, 5}, {0, 0, 1}, {1, 1, 0}, {1, 1, 2},
+                    {2, 2, 1}, {2, 2, 3}, {3, 3, 2}, {3, 3, 4},
+                    {4, 4, 3}, {4, 4, 5}, {5, 5, 4}, {5, 5, 0}
+            };
+            for (int[] path : gShapedPaths){
+                HexagonalMap.Position pos = actionField.getPosAfterPath(position, path);
+                if (pos != null && (pos.getFigure() == null ||
+                        pos.getFigure() != null && pos.getFigure().getFaction() == this.faction)){
+                    res.add(pos);
+                }
+            }
+            return res;
         }
 
         @Override
         public String getImageName() {
-            switch (faction){
-                case WHITE -> {
-                    return "whiteKnight.png";
-                }
-                case BLACK -> {
-                    return "blackKnight.png";
-                }
-            }
-            return "";
+            return getFactionName(this.faction) + "Knight.png";
         }
 
         @Override
@@ -233,27 +240,25 @@ public abstract class Figure {
         public List<HexagonalMap.Position> getMoveOptions() {
             List<HexagonalMap.Position> res = new ArrayList<>();
             for (int[] path : pathsToDiagonal){
-                res.addAll(getEmptyAndAttacking(actionField.getPosAfterPathAnyTimes(position, path)));
+                res.addAll(getCellsFromLineByPredicate(actionField.getPosAfterPathAnyTimes(position, path),
+                        (a)->(a.getFigure().getFaction() != this.getFaction())));
             }
             return res;
         }
 
         @Override
         public List<HexagonalMap.Position> getAttackingCells() {
-            return getMoveOptions();
+            List<HexagonalMap.Position> res = new ArrayList<>();
+            for (int[] path : pathsToDiagonal){
+                res.addAll(getCellsFromLineByPredicate(actionField.getPosAfterPathAnyTimes(position, path),
+                        (a)->(a.getFigure().getFaction() == this.getFaction())));
+            }
+            return res;
         }
 
         @Override
         public String getImageName() {
-            switch (faction){
-                case WHITE -> {
-                    return "whiteBishop.png";
-                }
-                case BLACK -> {
-                    return "blackBishop.png";
-                }
-            }
-            return "";
+            return getFactionName(this.faction) + "Bishop.png";
         }
 
         @Override
@@ -271,27 +276,25 @@ public abstract class Figure {
         public List<HexagonalMap.Position> getMoveOptions() {
             List<HexagonalMap.Position> res = new ArrayList<>();
             for (int dir = 0; dir < 6; dir++){
-                res.addAll(getEmptyAndAttacking(actionField.getAllPosThroughDir(position, dir)));
+                res.addAll(getCellsFromLineByPredicate(actionField.getAllPosThroughDir(position, dir),
+                        (a)->(a.getFigure().getFaction() != this.getFaction())));
             }
             return res;
         }
 
         @Override
         public List<HexagonalMap.Position> getAttackingCells() {
-            return getMoveOptions();
+            List<HexagonalMap.Position> res = new ArrayList<>();
+            for (int dir = 0; dir < 6; dir++){
+                res.addAll(getCellsFromLineByPredicate(actionField.getAllPosThroughDir(position, dir),
+                        (a)->(a.getFigure().getFaction() == this.getFaction())));
+            }
+            return res;
         }
 
         @Override
         public String getImageName() {
-            switch (faction){
-                case WHITE -> {
-                    return "whiteRook.png";
-                }
-                case BLACK -> {
-                    return "blackRook.png";
-                }
-            }
-            return "";
+            return getFactionName(this.faction) + "Rook.png";
         }
 
         @Override
@@ -309,30 +312,33 @@ public abstract class Figure {
         public List<HexagonalMap.Position> getMoveOptions() {
             List<HexagonalMap.Position> result = new ArrayList<>();
             for (int dir = 0; dir < 6; dir++){
-                result.addAll(getEmptyAndAttacking(actionField.getAllPosThroughDir(position, dir)));
+                result.addAll(getCellsFromLineByPredicate(actionField.getAllPosThroughDir(position, dir),
+                        (a)->(a.getFigure().getFaction() != this.getFaction())));
             }
             for (int[] path : pathsToDiagonal){
-                result.addAll(getEmptyAndAttacking(actionField.getPosAfterPathAnyTimes(position, path)));
+                result.addAll(getCellsFromLineByPredicate(actionField.getPosAfterPathAnyTimes(position, path),
+                        (a)->(a.getFigure().getFaction() != this.getFaction())));
             }
             return result;
         }
 
         @Override
         public List<HexagonalMap.Position> getAttackingCells() {
-            return getMoveOptions();
+            List<HexagonalMap.Position> result = new ArrayList<>();
+            for (int dir = 0; dir < 6; dir++){
+                result.addAll(getCellsFromLineByPredicate(actionField.getAllPosThroughDir(position, dir),
+                        (a)->(a.getFigure().getFaction() == this.getFaction())));
+            }
+            for (int[] path : pathsToDiagonal){
+                result.addAll(getCellsFromLineByPredicate(actionField.getPosAfterPathAnyTimes(position, path),
+                        (a)->(a.getFigure().getFaction() == this.getFaction())));
+            }
+            return result;
         }
 
         @Override
         public String getImageName() {
-            switch (faction){
-                case WHITE -> {
-                    return "whiteQueen.png";
-                }
-                case BLACK -> {
-                    return "blackQueen.png";
-                }
-            }
-            return "";
+            return getFactionName(this.faction) + "Queen.png";
         }
 
         @Override
@@ -350,35 +356,16 @@ public abstract class Figure {
 
         public King(HexagonalMap actionField, HexagonalMap.Position position, Factions faction){
             super(actionField, position, faction);
-            availableDirections = Arrays.asList(new Integer[]{0, 1, 2, 3, 4, 5});
+            availableDirections = Arrays.asList(0, 1, 2, 3, 4, 5);
             availableDiagonals = Arrays.asList(pathsToDiagonal);
         }
 
         @Override
         public String getImageName() {
-            switch (faction){
-                case WHITE -> {
-                    if (isAttacked){
-                        return "whiteKingWarning.png";
-                    }
-                    return "whiteKing.png";
-                }
-                case BLACK -> {
-                    if (isAttacked){
-                        return "blackKingWarning.png";
-                    }
-                    return "blackKing.png";
-                }
+            if (isAttacked){
+                return getFactionName(this.faction) + "KingWarning.png";
             }
-            return "";
-        }
-
-        public void attacked(){
-            isAttacked = true;
-        }
-
-        public boolean isAttacked(){
-            return isAttacked;
+            return getFactionName(this.faction) + "King.png";
         }
 
         public boolean isPositionChecked(HexagonalMap.Position pos, List<Figure> figures){
@@ -427,7 +414,22 @@ public abstract class Figure {
 
         @Override
         public List<HexagonalMap.Position> getAttackingCells() {
-            return getMoveOptions();
+            List<HexagonalMap.Position> result = new ArrayList<>();
+            for (int dir : availableDirections){
+                HexagonalMap.Position pos = actionField.getPositionByDir(position, dir);
+                if (pos != null && (pos.getFigure() == null ||pos.getFigure() != null
+                        && pos.getFigure().getFaction() == faction)){
+                    result.add(pos);
+                }
+            }
+            for (int[] path : availableDiagonals){
+                HexagonalMap.Position pos = actionField.getPosAfterPath(position, path);
+                if (pos != null && (pos.getFigure() == null ||pos.getFigure() != null
+                        && pos.getFigure().getFaction() == faction)){
+                    result.add(pos);
+                }
+            }
+            return result;
         }
 
         @Override

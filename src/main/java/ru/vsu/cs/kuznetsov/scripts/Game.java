@@ -2,6 +2,8 @@ package ru.vsu.cs.kuznetsov.scripts;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class Game {
     private static class Player{
@@ -19,8 +21,18 @@ public class Game {
     HexagonalMap board;
     Player[] turnQueue;
     int activPlayerIndex;
+    Player activPlayer;
     Figure selectedFigure = null;
     Factions[] gameFactions = new Factions[]{Factions.WHITE, Factions.BLACK};
+    private boolean isPawnChangingRequired = false;
+
+    BiFunction<Factions, HexagonalMap.Position, Figure>[] ffigureIneters = new BiFunction[]{
+            (f, p)->{return new Figure.Pawn(this.board, (HexagonalMap.Position) p, (Factions) f);},
+            (f, p)->{return new Figure.Knight(this.board, (HexagonalMap.Position) p, (Factions) f);},
+            (f, p)->{return new Figure.Bishop(this.board, (HexagonalMap.Position) p, (Factions) f);},
+            (f, p)->{return new Figure.Rook(this.board, (HexagonalMap.Position) p, (Factions) f);},
+            (f, p)->{return new Figure.Queen(this.board, (HexagonalMap.Position) p, (Factions) f);}
+    };
 
     public Game(){
         board = new HexagonalMap();
@@ -29,6 +41,7 @@ public class Game {
         for (int i = 0; i < turnQueue.length; i++){
             turnQueue[i] = initPlayer(gameFactions[i]);
         }
+        activPlayer = turnQueue[activPlayerIndex];
     }
 
     /**
@@ -93,6 +106,9 @@ public class Game {
      * @return constant code of what happened in game
      */
     public GameResponds cellClicked(int col, int row){
+        if (isPawnChangingRequired){
+            return GameResponds.PAWN_CHANGE_REQUIRED;
+        }
         if (selectedFigure == null){
             Figure clickedFigure = board.getCellState((char)col, row).getFigure();
             if (clickedFigure == null || clickedFigure.getFaction() != turnQueue[activPlayerIndex].faction){
@@ -112,6 +128,12 @@ public class Game {
             return GameResponds.FIGURE_RESELECTED;
         }
         if (selectedFigure.getMoveOptions().contains(selectedCell)) {
+            if (selectedFigure.getClass() == Figure.Pawn.class &&
+                    (11 - Math.abs(- 5 + ((col < 'j')?(col - 'a'):(col - 'a' - 1))) == row)){
+                isPawnChangingRequired = true;
+                selectedFigure.moveTo(selectedCell);
+                return GameResponds.PAWN_CHANGE_REQUIRED;
+            }
             if (selectedCell.getFigure() != null){
                 if (selectedCell.getFigure().equals(turnQueue[turnQueue.length - activPlayerIndex - 1].aliveFigures.get(0))){
                     if (turnQueue[activPlayerIndex].faction == Factions.BLACK){
@@ -145,5 +167,43 @@ public class Game {
      */
     public Factions getActivPlayerFaction(){
         return turnQueue[activPlayerIndex].faction;
+    }
+
+    /**
+     * @param figure figure needed to place on board and add under player control, target cell must be empty
+     */
+    public void addFigure(Figure figure){
+        if (board.getCellState(figure.getPosition()).getFigure() != null){
+            throw new RuntimeException("New figure cannot be placed to occupied cell.");
+        }
+        for (int i = 0; i < turnQueue.length; i++) {
+            if (turnQueue[i].faction == figure.faction){
+                board.setFigure(figure.getPosition(), figure);
+                turnQueue[i].aliveFigures.add(figure);
+                break;
+            }
+        }
+    }
+
+    /**
+     * @param oldFigure
+     * @param newFigure
+     * Replace figure on bord. Factions of new figure and old figure must be same.
+     */
+    public void replace(Figure oldFigure, Figure newFigure){
+        int oldIndex = turnQueue[activPlayerIndex].aliveFigures.indexOf(oldFigure);
+        if (oldIndex < 0){
+            throw new RuntimeException("No old figure as given on board.");
+        }
+        turnQueue[activPlayerIndex].aliveFigures.set(oldIndex, newFigure);
+        board.setFigure(oldFigure.getPosition(), newFigure);
+        if (oldFigure.getClass() == Figure.Pawn.class){
+            selectedFigure = null;
+            isPawnChangingRequired = false;
+        }
+    }
+
+    public Figure getSelectedFigure(){
+        return selectedFigure;
     }
 }

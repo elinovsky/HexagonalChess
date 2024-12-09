@@ -4,11 +4,7 @@ import ru.vsu.cs.kuznetsov.scripts.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.util.Arrays;
+import java.awt.event.*;
 import java.util.Iterator;
 import java.util.List;
 
@@ -16,14 +12,30 @@ public class MainGameUI extends JFrame{
     private JPanel mainPanel;
     private JPanel graphicPanel;
     private JLabel messageLable;
+    private JButton cancelButton;
+    private JButton saveNotation;
+    private JScrollPane gameScene;
+    private JPanel pawnChangingDialog;
+    private JButton submitButton;
+    private JPanel optionsPanel;
 
     private Game game;
     private Color[] cellColors = new Color[]{new Color(0xe2e2e2),
             new Color(0xa0a0a0), new Color(0x565656)};
     private int cellWidth = 60;
     private int cellHeight = 50;
+    private boolean pawnChanging = false;
+
+    ActionListener pawnSelectListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+//            game.replace(game.getSelectedFigure(), new Figure.Pawn());
+        }
+    };
 
     public MainGameUI(){
+        CardLayout cardLayout = (CardLayout) mainPanel.getLayout();
+        cardLayout.show(mainPanel, "gameScene");
         game = new Game();
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(700, 700);
@@ -160,6 +172,9 @@ public class MainGameUI extends JFrame{
                 paintBoard();
                 showMoves(game.getSelectedMoves());
             }
+            case PAWN_CHANGE_REQUIRED -> {
+                //TODO: find out how do dialog window and add here
+            }
         }
     }
 
@@ -189,8 +204,27 @@ public class MainGameUI extends JFrame{
                             cellWidth, cellHeight, null);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null,
-                            "Не удалось найти изображение targetMark.png.");
+                            "Не удалось отрыть изображение targetMark.png.\n" + ex.getMessage());
                 }
+            }
+        }
+    }
+
+    public void showPawnChangingDialog(Factions faction){
+        CardLayout layout = (CardLayout) mainPanel.getLayout();
+        layout.show(mainPanel, "pawnChangingDilog");
+        Graphics g = optionsPanel.getGraphics();
+        String[] figuresNames = new String[]{"Queen", "Rook", "Bishop", "Knight"};
+        g.setColor(Color.MAGENTA);
+        g.drawRect(10, 10, 10, 10);
+        for (int i = 0; i < figuresNames.length; i++){
+            String str = Figure.getFactionName(faction) + figuresNames[i] + ".png";
+            try {
+                Image img = FileContactor.readImageForFigure(str);
+                g.drawImage(img, 61 * i, 0, 61, 61, null);
+            } catch (Exception ex){
+                JOptionPane.showMessageDialog(null,
+                        "Не удалось открыть изображение " + str + " \n" + ex.getMessage());
             }
         }
     }

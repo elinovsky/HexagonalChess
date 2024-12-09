@@ -128,15 +128,23 @@ public class HexagonalMap {
     }
 
     /**
-     * @param col - letta of "column" can be from 'a' to 'l' except 'j'.
-     * @param row - number of "row" can be from 1 to 11.
-     * @return cell with (row, col) board coordinates
+     * @param col  letta of "column" can be from 'a' to 'l' except 'j'.
+     * @param row  number of "row" can be from 1 to 11.
+     * @return cell with (row, col) board coordinates.
      */
     public Position getCellState(char col, int row){
         if (!isCoordinatesValid(col, row)){
             throw new RuntimeException("Invalid board coordinates.");
         }
         return cell2position(getCellNotSafe(col, row));
+    }
+
+    /**
+     * @param position  position of interesting cell.
+     * @return cell with (row, col) board coordinates.
+     */
+    public Position getCellState(Position position){
+        return getCellState(position.col, position.row);
     }
 
     /**
