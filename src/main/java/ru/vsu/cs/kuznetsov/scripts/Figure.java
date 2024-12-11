@@ -17,6 +17,23 @@ public abstract class Figure {
             {2, 3}, {4, 3}, {4, 5}
     };
 
+    protected static String[] notationCodes = new String[]{"P", "N", "B", "R", "Q", "K"};
+
+    /**
+     * @return figures notation codes in order {Pawn, Knight, Bishop, Rook, Queen, King}
+     */
+    public static String[] getNotationCodes(){
+        return notationCodes;
+    }
+
+    /**
+     * Function made to change notation localization.
+     * @param newNotationCodes code consider next order {Pawn, Knight, Bishop, Rook, Queen, King}
+     */
+    public static void setNotationCodes(String[] newNotationCodes){
+        notationCodes = newNotationCodes;
+    }
+
     /**
      * @return faction of figure
      */
@@ -31,25 +48,28 @@ public abstract class Figure {
         return null;
     }
 
+    /**
+     * @return cells which can be attacked from this figure if enemy figure appears on it
+     */
+    public List<HexagonalMap.Position> getAttackingCells(){
+        return null;
+    }
+
     public void moveTo(HexagonalMap.Position cell){
         actionField.setFigure(position.getCol(), position.getRow(), null);
         position = cell;
         actionField.setFigure(cell.getCol(), cell.getRow(), this);
     }
 
+    /**
+     * Converts faction to strung faction name
+     */
     public static final String getFactionName(Factions faction){
         switch (faction){
             case BLACK -> {return "black";}
             case WHITE -> {return "white";}
         }
         return "";
-    }
-
-    /**
-     * @return cells which can be attacked from this figure if enemy figure appears on it
-     */
-    public List<HexagonalMap.Position> getAttackingCells(){
-        return null;
     }
 
     public Figure(HexagonalMap actionField, HexagonalMap.Position position, Factions faction){
@@ -90,11 +110,14 @@ public abstract class Figure {
     }
 
     /**
+     * @return code of this figure
+     */
+    public abstract String getNotationCode();
+
+    /**
      * @return name of image in assets associated with that figure
      */
-    public String getImageName(){
-        return null;
-    }
+    public abstract String getImageName();
 
     /**
      * @return position where figure stands
@@ -175,6 +198,11 @@ public abstract class Figure {
             canDoLongStep = false;
             super.moveTo(cell);
         }
+
+        @Override
+        public String getNotationCode() {
+            return notationCodes[0];
+        }
     }
 
     public static class Knight extends Figure{
@@ -228,6 +256,11 @@ public abstract class Figure {
         public void moveTo(HexagonalMap.Position cell) {
             super.moveTo(cell);
         }
+
+        @Override
+        public String getNotationCode() {
+            return notationCodes[1];
+        }
     }
 
     public static class Bishop extends Figure {
@@ -265,6 +298,11 @@ public abstract class Figure {
         public void moveTo(HexagonalMap.Position cell) {
             super.moveTo(cell);
         }
+
+        @Override
+        public String getNotationCode() {
+            return notationCodes[2];
+        }
     }
 
     public static class Rook extends Figure{
@@ -300,6 +338,11 @@ public abstract class Figure {
         @Override
         public void moveTo(HexagonalMap.Position cell) {
             super.moveTo(cell);
+        }
+
+        @Override
+        public String getNotationCode() {
+            return notationCodes[3];
         }
     }
 
@@ -344,6 +387,11 @@ public abstract class Figure {
         @Override
         public void moveTo(HexagonalMap.Position cell) {
             super.moveTo(cell);
+        }
+
+        @Override
+        public String getNotationCode() {
+            return notationCodes[4];
         }
     }
 
@@ -412,33 +460,67 @@ public abstract class Figure {
             return result;
         }
 
-        boolean isUnderMate(List<Figure> hostiles, List<Figure> friends){
+        boolean isUnderMate(List<Figure> hostiles, List<Figure> allys){
             if (!isAttacked) {
                 return false;
             }
-            if (availableDiagonals.isEmpty() && availableDirections.isEmpty()){
-                availableDirections = Arrays.asList(0, 1, 2, 3, 4, 5);
-                availableDiagonals = Arrays.asList(pathsToDiagonal);
+            if (!availableDiagonals.isEmpty() || !availableDirections.isEmpty()) {
+                return true;
             }
-            return false;
+            boolean isUnderMate = false;
+            List <Figure> attackingFigures = new ArrayList<>();
+            for (Figure enemy : hostiles){
+                if (enemy.getMoveOptions().contains(position)){
+                    attackingFigures.add(enemy);
+                }
+            }
+            if (attackingFigures.size() >= 2){
+                return true;
+            }
+            Figure attacker = attackingFigures.get(0);
+            List<HexagonalMap.Position> attackingPosition = new ArrayList<>();
+            int dirInd = 0;
+            if (attacker.position.getCol() == position.getCol()){
+                if (attacker.position.getRow() < position.getRow())
+                    dirInd = 3;
+            } else if (attacker.position.getCol() < position.getCol()){
+                dirInd = 4;
+            } else {
+                dirInd = 1;
+            }
+            for (int dir = dirInd; dir <= dirInd + 1; dir++)
+                if (attackingPosition.addAll(getCellsFromLineByPredicate(
+                        actionField.getAllPosThroughDir(position, dir), (a)->(attacker.equals(a))))) break;
+            if (attackingPosition.isEmpty()){
+                for (int diagInd = dirInd; diagInd <= dirInd + 2; diagInd++)
+                    if (attackingPosition.addAll(getCellsFromLineByPredicate(
+                            actionField.getPosAfterPathAnyTimes(position, pathsToDiagonal[diagInd % 6]),
+                            (a)->(attacker.equals(a))))) break;
+            }
+            for (Figure ally : allys){
+                List <HexagonalMap.Position> defended = ally.getMoveOptions();
+                if (attackingPosition.stream().anyMatch(a-> defended.contains(a)))
+                    return false;
+                if (attackingPosition.isEmpty()) {
+                    if (defended.contains(attacker.position))
+                        return false;
+                }
+            }
+            return true;
         }
 
         @Override
         public List<HexagonalMap.Position> getAttackingCells() {
             List<HexagonalMap.Position> result = new ArrayList<>();
-            for (int dir : availableDirections){
+            for (int dir = 0; dir < 6; dir++){
                 HexagonalMap.Position pos = actionField.getPositionByDir(position, dir);
-                if (pos != null && (pos.getFigure() == null ||pos.getFigure() != null
-                        && pos.getFigure().getFaction() == faction)){
+                if (pos != null)
                     result.add(pos);
-                }
             }
-            for (int[] path : availableDiagonals){
+            for (int[] path : pathsToDiagonal){
                 HexagonalMap.Position pos = actionField.getPosAfterPath(position, path);
-                if (pos != null && (pos.getFigure() == null ||pos.getFigure() != null
-                        && pos.getFigure().getFaction() == faction)){
+                if (pos != null)
                     result.add(pos);
-                }
             }
             return result;
         }
@@ -446,6 +528,11 @@ public abstract class Figure {
         @Override
         public void moveTo(HexagonalMap.Position cell) {
             super.moveTo(cell);
+        }
+
+        @Override
+        public String getNotationCode() {
+            return notationCodes[5];
         }
     }
 }
