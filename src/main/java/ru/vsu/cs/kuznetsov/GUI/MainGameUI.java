@@ -93,10 +93,6 @@ public class MainGameUI extends JFrame{
         showMoves(game.getSelectedMoves());
     }
 
-//    public void repaint(){
-//
-//    }
-
     /**
      * Wipe graphicsPlane and paint game board on it
      */

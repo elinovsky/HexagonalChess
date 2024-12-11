@@ -25,8 +25,9 @@ public class Game {
     Figure selectedFigure = null;
     Factions[] gameFactions = new Factions[]{Factions.WHITE, Factions.BLACK};
     private boolean isPawnChangingRequired = false;
+    List <String> algebraicNotation;
 
-    BiFunction<Factions, HexagonalMap.Position, Figure>[] ffigureIneters = new BiFunction[]{
+    public BiFunction<Factions, HexagonalMap.Position, Figure>[] ffigureIneters = new BiFunction[]{
             (f, p)->{return new Figure.Pawn(this.board, (HexagonalMap.Position) p, (Factions) f);},
             (f, p)->{return new Figure.Knight(this.board, (HexagonalMap.Position) p, (Factions) f);},
             (f, p)->{return new Figure.Bishop(this.board, (HexagonalMap.Position) p, (Factions) f);},
@@ -35,6 +36,7 @@ public class Game {
     };
 
     public Game(){
+        algebraicNotation = new ArrayList<>();
         board = new HexagonalMap();
         activPlayerIndex = 0;
         turnQueue = new Player[2];
@@ -49,6 +51,7 @@ public class Game {
      */
     public void giveTurnFurther(){
         activPlayerIndex = (activPlayerIndex + 1) % turnQueue.length;
+        activPlayer = turnQueue[activPlayerIndex];
         selectedFigure = null;
     }
 
@@ -109,44 +112,51 @@ public class Game {
         if (isPawnChangingRequired){
             return GameResponds.PAWN_CHANGE_REQUIRED;
         }
+        //figure selection
         if (selectedFigure == null){
             Figure clickedFigure = board.getCellState((char)col, row).getFigure();
-            if (clickedFigure == null || clickedFigure.getFaction() != turnQueue[activPlayerIndex].faction){
+            if (clickedFigure == null || clickedFigure.getFaction() != activPlayer.faction){
                 return GameResponds.NO_ANSWER;
             }
             selectedFigure = clickedFigure;
             return GameResponds.FIGURE_SELECTED;
         }
         HexagonalMap.Position selectedCell = board.getCellState((char)col, row);
-        if (selectedCell.getFigure() != null &&
-                selectedCell.getFigure().getFaction() == turnQueue[activPlayerIndex].faction){
-            if (selectedCell.getFigure().equals(selectedFigure)){
+        Figure clickedFigure = selectedCell.getFigure();
+        //checking if clicked figure is friendly
+        if (clickedFigure != null &&
+                selectedCell.getFigure().getFaction() == activPlayer.faction){
+            if (clickedFigure.equals(selectedFigure)){
                 selectedFigure = null;
                 return GameResponds.FIGURE_DESELECTED;
             }
-            selectedFigure = selectedCell.getFigure();
+            selectedFigure = clickedFigure;
             return GameResponds.FIGURE_RESELECTED;
         }
+        //can move on clicked cell
         if (selectedFigure.getMoveOptions().contains(selectedCell)) {
+            //pawn moved to enemy back row
             if (selectedFigure.getClass() == Figure.Pawn.class &&
-                    (11 - Math.abs(- 5 + ((col < 'j')?(col - 'a'):(col - 'a' - 1))) == row)){
+                    (11 - Math.abs(- 5 + ((col < 'j')?(col - 'a'):(col - 'a' - 1))) == row) || row == 1){
                 isPawnChangingRequired = true;
                 selectedFigure.moveTo(selectedCell);
                 return GameResponds.PAWN_CHANGE_REQUIRED;
             }
+            //remove enemy figure if attacked
             if (selectedCell.getFigure() != null){
                 if (selectedCell.getFigure().equals(turnQueue[turnQueue.length - activPlayerIndex - 1].aliveFigures.get(0))){
-                    if (turnQueue[activPlayerIndex].faction == Factions.BLACK){
+                    if (activPlayer.faction == Factions.BLACK){
                         return GameResponds.BLACK_WIN;
                     }
                     return GameResponds.WHITE_WIN;
                 }
                 turnQueue[turnQueue.length - activPlayerIndex - 1].aliveFigures.remove(selectedCell.getFigure());
             }
+            //step doing, turn passing, king check
             selectedFigure.moveTo(selectedCell);
-            ((Figure.King)(turnQueue[activPlayerIndex].aliveFigures.get(0))).updateAvailablePositions(turnQueue[turnQueue.length - activPlayerIndex - 1].aliveFigures);
+            ((Figure.King)(activPlayer.aliveFigures.get(0))).updateAvailablePositions(turnQueue[turnQueue.length - activPlayerIndex - 1].aliveFigures);
             giveTurnFurther();
-            ((Figure.King)(turnQueue[activPlayerIndex].aliveFigures.get(0))).updateAvailablePositions(turnQueue[turnQueue.length - activPlayerIndex - 1].aliveFigures);
+            ((Figure.King)(activPlayer.aliveFigures.get(0))).updateAvailablePositions(turnQueue[turnQueue.length - activPlayerIndex - 1].aliveFigures);
             return GameResponds.TURN_DONE;
         }
         return GameResponds.NO_ANSWER;

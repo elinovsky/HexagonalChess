@@ -412,6 +412,17 @@ public abstract class Figure {
             return result;
         }
 
+        boolean isUnderMate(List<Figure> hostiles, List<Figure> friends){
+            if (!isAttacked) {
+                return false;
+            }
+            if (availableDiagonals.isEmpty() && availableDirections.isEmpty()){
+                availableDirections = Arrays.asList(0, 1, 2, 3, 4, 5);
+                availableDiagonals = Arrays.asList(pathsToDiagonal);
+            }
+            return false;
+        }
+
         @Override
         public List<HexagonalMap.Position> getAttackingCells() {
             List<HexagonalMap.Position> result = new ArrayList<>();
