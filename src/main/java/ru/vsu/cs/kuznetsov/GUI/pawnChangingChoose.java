@@ -1,6 +1,5 @@
 package ru.vsu.cs.kuznetsov.GUI;
 
-import ru.vsu.cs.kuznetsov.scripts.Figure;
 import ru.vsu.cs.kuznetsov.scripts.FileContactor;
 
 import javax.swing.*;
@@ -32,7 +31,7 @@ public class pawnChangingChoose extends JDialog {
         for (int i = 0; i < figuresNames.length; i++){
             String str = factionName + figuresNames[i] + ".png";
             try {
-                Image img = FileContactor.readImageForFigure(str);
+                Image img = FileContactor.readImage(str);
                 g.drawImage(img, 61 * i, 0, 61, 61, null);
             } catch (Exception ex){
                 JOptionPane.showMessageDialog(null,

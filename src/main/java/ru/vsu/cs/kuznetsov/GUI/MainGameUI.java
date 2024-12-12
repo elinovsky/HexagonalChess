@@ -3,6 +3,7 @@ package ru.vsu.cs.kuznetsov.GUI;
 import ru.vsu.cs.kuznetsov.scripts.*;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Iterator;
@@ -13,11 +14,14 @@ public class MainGameUI extends JFrame{
     private JPanel graphicPanel;
     private JLabel messageLable;
     private JButton cancelButton;
-    private JButton saveNotation;
+    private JButton saveNotationButton;
     private JScrollPane gameScene;
     private JPanel pawnChangingDialog;
     private JButton submitButton;
     private JPanel optionsPanel;
+    private JTextArea notationTextArea;
+    private JButton saveBoardButton;
+    private JButton loadGameButton;
 
     private Game game;
     private Color[] cellColors = new Color[]{new Color(0xe2e2e2),
@@ -36,12 +40,13 @@ public class MainGameUI extends JFrame{
     public MainGameUI(){
         CardLayout cardLayout = (CardLayout) mainPanel.getLayout();
         cardLayout.show(mainPanel, "gameScene");
-        game = new Game();
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setSize(700, 700);
+        setSize(800, 700);
+        notationTextArea.setEditable(false);
         setContentPane(mainPanel);
         setVisible(true);
         setTitle("Шахматы Глинского. Выбирать фигуры и ходить ими нажатием мыши!");
+        game = new Game();
         //TODO: remove after adding features
         JOptionPane.showMessageDialog(null,
                 "Здравствуйте! Это не завершённая версия приложения.\n" +
@@ -49,6 +54,57 @@ public class MainGameUI extends JFrame{
                         "один из игроков должен попытаться атакавать короля другого \n" +
                         "на своём ходу. Не реализованы некоторые возможности пешек. \n" +
                         "Возможны баги.");
+        //Event listener initializing
+        saveNotationButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser();
+                chooser.setFileFilter(new FileNameExtensionFilter("Text files", "txt"));
+                int returnVal = chooser.showSaveDialog(null);
+                if (returnVal == JFileChooser.APPROVE_OPTION){
+                    try {
+                        FileContactor.saveNotation(chooser.getSelectedFile().getPath(), game.getAlgebraicNotation());
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(null,
+                                "Не удалось отрыть файл " + chooser.getSelectedFile().getPath()
+                                        + "или записать его.\n" + ex.getMessage());
+                    }
+                }
+            }
+        });
+        loadGameButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser();
+                chooser.setFileFilter(new FileNameExtensionFilter("Text files", "txt"));
+                int returnVal = chooser.showOpenDialog(null);
+                if (returnVal == JFileChooser.APPROVE_OPTION){
+                    try {
+                        game.readBoardConfigurationToThis(
+                                FileContactor.readGameConfiguration(chooser.getSelectedFile().getPath()));
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(null, ex.getMessage());
+                    }
+                }
+            }
+        });
+        saveBoardButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser();
+                chooser.setFileFilter(new FileNameExtensionFilter("Text files", "txt"));
+                int returnVal = chooser.showSaveDialog(null);
+                if (returnVal == JFileChooser.APPROVE_OPTION){
+                    try {
+                        FileContactor.saveNotation(chooser.getSelectedFile().getPath(), game.getGameConfiguration());
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(null,
+                                "Не удалось отрыть файл " + chooser.getSelectedFile().getPath()
+                                        + "или записать его.\n" + ex.getMessage());
+                    }
+                }
+            }
+        });
         //Mouse listener, reacting only on click, defining which cell was pressed.
         //Calls UI reaction function on game event.
         graphicPanel.addMouseListener(new MouseAdapter() {
@@ -119,7 +175,7 @@ public class MainGameUI extends JFrame{
                 Figure cellStander = boardCells.next().getFigure();
                 if (cellStander != null) {
                     try {
-                        Image img = FileContactor.readImageForFigure(cellStander.getImageName());
+                        Image img = FileContactor.readImage(cellStander.getImageName());
                         g.drawImage(img, cellX + (cellWidth - 40)/2, cellY - (cellHeight - 50)/2,
                                 40, 40, null);
                     } catch (Exception ex) {
@@ -163,6 +219,7 @@ public class MainGameUI extends JFrame{
                 }else{
                     messageLable.setText("Ход белых");
                 }
+                notationTextArea.setText(game.getAlgebraicNotation());
             }
             case FIGURE_RESELECTED -> {
                 paintBoard();
@@ -195,7 +252,7 @@ public class MainGameUI extends JFrame{
                 g.fillOval(posX, posY, cellWidth / 2, cellHeight / 2);
             } else {
                 try {
-                    Image img = FileContactor.readImageForFigure("targetMark.png");
+                    Image img = FileContactor.readImage("targetMark.png");
                     g.drawImage(img, posX - cellWidth / 4, posY - cellHeight / 4,
                             cellWidth, cellHeight, null);
                 } catch (Exception ex) {
@@ -216,7 +273,7 @@ public class MainGameUI extends JFrame{
         for (int i = 0; i < figuresNames.length; i++){
             String str = Figure.getFactionName(faction) + figuresNames[i] + ".png";
             try {
-                Image img = FileContactor.readImageForFigure(str);
+                Image img = FileContactor.readImage(str);
                 g.drawImage(img, 61 * i, 0, 61, 61, null);
             } catch (Exception ex){
                 JOptionPane.showMessageDialog(null,

@@ -2,25 +2,38 @@ package ru.vsu.cs.kuznetsov.scripts;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
-import java.net.URL;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.Scanner;
 
 public class FileContactor {
-    public static Image readImageForFigure(String imgName) throws Exception{
+    public static Image readImage(String imgName) throws Exception{
         String path = Paths.get("assets",
                 imgName).toAbsolutePath().toString();
         return ImageIO.read(new File(path));
     }
 
-//    public static void saveBoardConfig(String filePath, List<Figure> boardFigures) throws Exception{
-//        StringBuilder fileContaining = new StringBuilder();
-//        for (Figure fig : boardFigures){
-//            fileContaining.append()
-//        }
-//    }
+    public static void saveBoardConfig(String filePath, Game game) throws Exception{
+        FileWriter fw = new FileWriter(filePath);
+        fw.write(game.getGameConfiguration());
+        fw.close();
+    }
+
+    public static void saveNotation(String filePath, String notation) throws Exception{
+        FileWriter fw = new FileWriter(filePath);
+        fw.write(notation);
+        fw.close();
+    }
+
+    public static String readGameConfiguration(String filePath) throws Exception{
+        Scanner reader = new Scanner(new File(filePath));
+        StringBuilder res = new StringBuilder();
+        while (reader.hasNextLine()){
+            res.append(reader.nextLine());
+        }
+        reader.close();
+        return res.toString();
+    }
 }

@@ -26,13 +26,13 @@ public abstract class Figure {
         return notationCodes;
     }
 
-    /**
-     * Function made to change notation localization.
-     * @param newNotationCodes code consider next order {Pawn, Knight, Bishop, Rook, Queen, King}
-     */
-    public static void setNotationCodes(String[] newNotationCodes){
-        notationCodes = newNotationCodes;
-    }
+//    /**
+//     * Function made to change notation localization.
+//     * @param newNotationCodes code consider next order {Pawn, Knight, Bishop, Rook, Queen, King}
+//     */
+//    public static void setNotationCodes(String[] newNotationCodes){
+//        notationCodes = newNotationCodes;
+//    }
 
     /**
      * @return faction of figure
@@ -70,6 +70,14 @@ public abstract class Figure {
             case WHITE -> {return "white";}
         }
         return "";
+    }
+
+    public static final Factions getFactionByName(String name){
+        switch (name){
+            case "black" -> {return Factions.BLACK;}
+            case "white" -> {return Factions.WHITE;}
+        }
+        return Factions.NO_FIGURE;
     }
 
     public Figure(HexagonalMap actionField, HexagonalMap.Position position, Factions faction){

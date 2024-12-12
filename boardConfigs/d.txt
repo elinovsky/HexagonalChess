@@ -1,0 +1,2 @@
+white: P a 5; K f 1;
+black: K f 11;
