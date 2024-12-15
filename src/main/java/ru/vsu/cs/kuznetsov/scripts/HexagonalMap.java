@@ -47,6 +47,10 @@ public class HexagonalMap {
         public int hashCode() {
             return Objects.hash(col, row);
         }
+
+        public String toString(){
+            return col + ", " + row;
+        }
     }
 
     private class Cell{

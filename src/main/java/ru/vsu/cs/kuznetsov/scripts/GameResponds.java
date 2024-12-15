@@ -8,5 +8,7 @@ public enum GameResponds {
     TURN_DONE,
     WHITE_WIN,
     BLACK_WIN,
-    PAWN_CHANGE_REQUIRED
+    PAWN_CHANGE_REQUIRED,
+    STALEMATE,
+    SELF_ENDANGERING
 }

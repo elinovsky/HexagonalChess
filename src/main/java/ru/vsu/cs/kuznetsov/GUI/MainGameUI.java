@@ -13,7 +13,6 @@ public class MainGameUI extends JFrame{
     private JPanel mainPanel;
     private JPanel graphicPanel;
     private JLabel messageLable;
-    private JButton cancelButton;
     private JButton saveNotationButton;
     private JScrollPane gameScene;
     private JPanel pawnChangingDialog;
@@ -38,6 +37,7 @@ public class MainGameUI extends JFrame{
     };
 
     public MainGameUI(){
+        game = new Game();
         CardLayout cardLayout = (CardLayout) mainPanel.getLayout();
         cardLayout.show(mainPanel, "gameScene");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -46,13 +46,10 @@ public class MainGameUI extends JFrame{
         setContentPane(mainPanel);
         setVisible(true);
         setTitle("Шахматы Глинского. Выбирать фигуры и ходить ими нажатием мыши!");
-        game = new Game();
         //TODO: remove after adding features
         JOptionPane.showMessageDialog(null,
                 "Здравствуйте! Это не завершённая версия приложения.\n" +
-                        "Отсутствует опознание мата и пата, поэтому, чтобы выиграть, \n" +
-                        "один из игроков должен попытаться атакавать короля другого \n" +
-                        "на своём ходу. Не реализованы некоторые возможности пешек. \n" +
+                        "Не реализованы некоторые возможности пешек. \n" +
                         "Возможны баги.");
         //Event listener initializing
         saveNotationButton.addActionListener(new ActionListener() {
@@ -196,38 +193,57 @@ public class MainGameUI extends JFrame{
      */
     public void gameListener(GameResponds respond){
         switch (respond){
-            case FIGURE_DESELECTED -> paintBoard();
-            case FIGURE_SELECTED -> showMoves(game.getSelectedMoves());
-            case BLACK_WIN -> {
-                messageLable.setText("Победа игрока за чёрные фигуры!");
-                for(MouseListener aL : graphicPanel.getListeners(MouseListener.class)){
-                    graphicPanel.removeMouseListener(aL);
-                }
-                paintBoard();
+            case FIGURE_DESELECTED->paintBoard();
+            case FIGURE_SELECTED->{
+                showMoves(game.getSelectedMoves());
             }
-            case WHITE_WIN -> {
-                messageLable.setText("Победа игрока за белые фигуры!");
-                for(MouseListener aL : graphicPanel.getListeners(MouseListener.class)){
-                    graphicPanel.removeMouseListener(aL);
-                }
-                paintBoard();
-            }
-            case TURN_DONE -> {
-                paintBoard();
-                if(game.getActivPlayerFaction() == Factions.BLACK){
-                    messageLable.setText("Ход чёрных");
-                }else{
-                    messageLable.setText("Ход белых");
-                }
-                notationTextArea.setText(game.getAlgebraicNotation());
-            }
-            case FIGURE_RESELECTED -> {
+            case FIGURE_RESELECTED->{
                 paintBoard();
                 showMoves(game.getSelectedMoves());
             }
-            case PAWN_CHANGE_REQUIRED -> {
+            case BLACK_WIN->{
+                messageLable.setText("Победа игрока за чёрные фигуры!");
+                removeBoardListeners();
+                paintBoard();
+            }
+            case WHITE_WIN->{
+                messageLable.setText("Победа игрока за белые фигуры!");
+                removeBoardListeners();
+                paintBoard();
+            }
+            case STALEMATE->{
+                messageLable.setText("Пат!");
+                removeBoardListeners();
+                paintBoard();
+            }
+            case TURN_DONE->{
+                messageLable.setText(getTurnTip(game.getActivPlayerFaction()));
+                notationTextArea.setText(game.getAlgebraicNotation());
+                paintBoard();
+            }
+            case SELF_ENDANGERING->{
+                messageLable.setText("Этот ход подвергнет короля опасности. " +
+                        getTurnTip(game.getActivPlayerFaction()));
+                paintBoard();
+            }
+            case PAWN_CHANGE_REQUIRED->{
+                System.out.println(1);
                 //TODO: find out how do dialog window and add here
             }
+        }
+    }
+
+    private String getTurnTip(Factions faction){
+        return switch (faction) {
+            case WHITE -> "Ход белых";
+            case BLACK -> "Ход чёрных";
+            default -> "Как сюда попало это значение?";
+        };
+    }
+
+    private void removeBoardListeners(){
+        for(MouseListener aL : graphicPanel.getListeners(MouseListener.class)){
+            graphicPanel.removeMouseListener(aL);
         }
     }
 

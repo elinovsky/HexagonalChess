@@ -1,2 +1,1 @@
-black: B f 11; B f 10; B f 9; R c 8; R i 8; N d 9; N h 9; Q e 10; P b 7; P c 7; P d 7; P e 7; P f 7; P g 7; P h 7; P i 7; P k 7; 
-white: B f 3; B f 2; B f 1; R c 1; R i 1; N d 1; N h 1; Q e 1; P b 1; P c 2; P d 3; P e 4; P f 5; P g 4; P h 3; P i 3; P k 1; 
+player white K g, 1 B h, 3 R a, 1 N f, 7 N l, 4 Q c, 1 P e, 7 P k, 1 player black K g, 10 B f, 9 R h, 6 R e, 4 N g, 5 Q c, 6 P b, 7 P b, 4 P d, 7 P g, 6 P i, 6 P i, 7 P k, 4 

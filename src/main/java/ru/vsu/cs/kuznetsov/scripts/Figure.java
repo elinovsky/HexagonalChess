@@ -42,6 +42,13 @@ public abstract class Figure {
     }
 
     /**
+     * @return position where figure stands
+     */
+    public HexagonalMap.Position getPosition(){
+        return position;
+    }
+
+    /**
      * @return cells where figure can move that turn
      */
     public List<HexagonalMap.Position> getMoveOptions(){
@@ -108,6 +115,24 @@ public abstract class Figure {
         return result;
     }
 
+    /**
+     *
+     * @param pos position we need to check
+     * @param figures figures that may check position pos
+     * @return true if position checked by any figure false else
+     */
+    public static boolean isPositionChecked(HexagonalMap.Position pos, List<Figure> figures){
+        return figures.stream().anyMatch(a->a.getMoveOptions().contains(pos));
+//            boolean isPosChecked = false;
+//            for (Figure enemy : figures){
+//                if (enemy.getAttackingCells().contains(pos)){
+//                    isPosChecked = true;
+//                    break;
+//                }
+//            }
+//            return isPosChecked;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == this) return true;
@@ -115,6 +140,10 @@ public abstract class Figure {
         Figure other = (Figure) o;
         return other.position.getCol() == this.position.getCol() &&
                 other.position.getRow() == this.position.getRow();
+    }
+
+    public boolean canBeChanged(){
+        return false;
     }
 
     /**
@@ -126,13 +155,6 @@ public abstract class Figure {
      * @return name of image in assets associated with that figure
      */
     public abstract String getImageName();
-
-    /**
-     * @return position where figure stands
-     */
-    public HexagonalMap.Position getPosition(){
-        return position;
-    }
 
     public static class Pawn extends Figure{
         private int forwardDirection;
@@ -211,6 +233,14 @@ public abstract class Figure {
         public String getNotationCode() {
             return notationCodes[0];
         }
+
+        public boolean canBeChanged(){
+            if (faction == Factions.WHITE){
+                return (11 - Math.abs(- 5 + ((position.getCol() < 'j')?(position.getCol() - 'a'):
+                        (position.getCol() - 'a' - 1))) == position.getRow());
+            }
+            return position.getRow() == 1;
+        }
     }
 
     public static class Knight extends Figure{
@@ -261,11 +291,6 @@ public abstract class Figure {
         }
 
         @Override
-        public void moveTo(HexagonalMap.Position cell) {
-            super.moveTo(cell);
-        }
-
-        @Override
         public String getNotationCode() {
             return notationCodes[1];
         }
@@ -303,11 +328,6 @@ public abstract class Figure {
         }
 
         @Override
-        public void moveTo(HexagonalMap.Position cell) {
-            super.moveTo(cell);
-        }
-
-        @Override
         public String getNotationCode() {
             return notationCodes[2];
         }
@@ -341,11 +361,6 @@ public abstract class Figure {
         @Override
         public String getImageName() {
             return getFactionName(this.faction) + "Rook.png";
-        }
-
-        @Override
-        public void moveTo(HexagonalMap.Position cell) {
-            super.moveTo(cell);
         }
 
         @Override
@@ -393,11 +408,6 @@ public abstract class Figure {
         }
 
         @Override
-        public void moveTo(HexagonalMap.Position cell) {
-            super.moveTo(cell);
-        }
-
-        @Override
         public String getNotationCode() {
             return notationCodes[4];
         }
@@ -424,28 +434,17 @@ public abstract class Figure {
             return getFactionName(this.faction) + "King.png";
         }
 
-        public boolean isPositionChecked(HexagonalMap.Position pos, List<Figure> figures){
-            boolean isPosChecked = false;
-            for (Figure enemy : figures){
-                if (enemy.getAttackingCells().contains(pos)){
-                    isPosChecked = true;
-                    break;
-                }
-            }
-            return isPosChecked;
-        }
-
         /**
          * Updates cells where king can move
-         * @param enemys - List of enemy figures.
+         * @param hostiles - List of enemy figures.
          */
-        public void updateAvailablePositions(List<Figure> enemys){
+        public void updateAvailablePositions(List<Figure> hostiles){
             availableDirections = IntStream.rangeClosed(0, 5).
-                    filter((int a)->(!isPositionChecked(actionField.getPositionByDir(position, a), enemys))).
+                    filter((int a)->(!isPositionChecked(actionField.getPositionByDir(position, a), hostiles))).
                     boxed().collect(Collectors.toList());
             availableDiagonals = Arrays.stream(pathsToDiagonal).filter((a) ->
-                    (!isPositionChecked(actionField.getPosAfterPath(position, a), enemys))).collect(Collectors.toList());
-            isAttacked = isPositionChecked(position, enemys);
+                    (!isPositionChecked(actionField.getPosAfterPath(position, a), hostiles))).collect(Collectors.toList());
+            isAttacked = isPositionChecked(position, hostiles);
         }
 
         @Override
@@ -472,10 +471,9 @@ public abstract class Figure {
             if (!isAttacked) {
                 return false;
             }
-            if (!availableDiagonals.isEmpty() || !availableDirections.isEmpty()) {
+            if (availableDiagonals.isEmpty() || availableDirections.isEmpty()) {
                 return true;
             }
-            boolean isUnderMate = false;
             List <Figure> attackingFigures = new ArrayList<>();
             for (Figure enemy : hostiles){
                 if (enemy.getMoveOptions().contains(position)){
@@ -531,11 +529,6 @@ public abstract class Figure {
                     result.add(pos);
             }
             return result;
-        }
-
-        @Override
-        public void moveTo(HexagonalMap.Position cell) {
-            super.moveTo(cell);
         }
 
         @Override

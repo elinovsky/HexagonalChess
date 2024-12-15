@@ -2,6 +2,7 @@ package ru.vsu.cs.kuznetsov.scripts;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -109,20 +110,20 @@ public class Game {
      * @param row - row of cell was clicked
      * @return constant code of what happened in game
      */
-    public GameResponds cellClicked(int col, int row){
+    public GameResponds cellClicked(char col, int row){
         if (isPawnChangingRequired){
             return GameResponds.PAWN_CHANGE_REQUIRED;
         }
         //figure selection
         if (selectedFigure == null){
-            Figure clickedFigure = board.getCellState((char)col, row).getFigure();
+            Figure clickedFigure = board.getCellState(col, row).getFigure();
             if (clickedFigure == null || clickedFigure.getFaction() != activPlayer.faction){
                 return GameResponds.NO_ANSWER;
             }
             selectedFigure = clickedFigure;
             return GameResponds.FIGURE_SELECTED;
         }
-        HexagonalMap.Position selectedCell = board.getCellState((char)col, row);
+        HexagonalMap.Position selectedCell = board.getCellState(col, row);
         Figure clickedFigure = selectedCell.getFigure();
         //checking if clicked figure is friendly
         if (clickedFigure != null &&
@@ -135,35 +136,60 @@ public class Game {
             return GameResponds.FIGURE_RESELECTED;
         }
         //can move on clicked cell
+        Player opposite = turnQueue[turnQueue.length - activPlayerIndex - 1];
         if (selectedFigure.getMoveOptions().contains(selectedCell)) {
-            //pawn moved to enemy back row
-            if (selectedFigure.getClass() == Figure.Pawn.class &&
-                    (11 - Math.abs(- 5 + ((col < 'j')?(col - 'a'):(col - 'a' - 1))) == row) || row == 1){
+            if(!moveSelected(col, row)){
+                return GameResponds.SELF_ENDANGERING;
+            }
+            if (selectedFigure.canBeChanged()){
                 isPawnChangingRequired = true;
-                selectedFigure.moveTo(selectedCell);
                 return GameResponds.PAWN_CHANGE_REQUIRED;
             }
-            //remove enemy figure if attacked
-            if (selectedCell.getFigure() != null){
-                if (selectedCell.getFigure().equals(turnQueue[turnQueue.length - activPlayerIndex - 1].king)){
-                    if (activPlayer.faction == Factions.BLACK){
-                        return GameResponds.BLACK_WIN;
-                    }
-                    return GameResponds.WHITE_WIN;
-                }
-                turnQueue[turnQueue.length - activPlayerIndex - 1].aliveFigures.remove(selectedCell.getFigure());
-            }
-            //step doing, turn passing, king check
-            selectedFigure.moveTo(selectedCell);
+            //turn passing, king check
             for (int i = 0; i < 2; i++) {
                 List <Figure> attackers = new ArrayList<>(turnQueue[(i + 1) % 2].aliveFigures);
                 attackers.add(turnQueue[(i + 1) % 2].king);
                 turnQueue[i].king.updateAvailablePositions(attackers);
             }
+            List <Figure> allActiveFigures = new ArrayList<>(activPlayer.aliveFigures);
+            allActiveFigures.add(activPlayer.king);
+            if (opposite.king.isUnderMate(allActiveFigures, opposite.aliveFigures)){
+                return getLoseRespond(opposite.faction);
+            }
+            if (activPlayer.aliveFigures.isEmpty() && opposite.aliveFigures.isEmpty())
+                return GameResponds.STALEMATE;
             giveTurnFurther();
             return GameResponds.TURN_DONE;
         }
         return GameResponds.NO_ANSWER;
+    }
+
+    /**
+     * Moves selected figure to position (targetCol, targetRow) if it doesn't endanger active player's king.
+     * WARNING: make sure that selected figure not null!
+     * @return true if selected figure was moved, false else.
+     */
+    private boolean moveSelected(char targetCol, int targetRow){
+        Figure attacked = board.getCellState(targetCol, targetRow).getFigure();
+        HexagonalMap.Position leaving = selectedFigure.getPosition();
+        selectedFigure.moveTo(board.getCellState(targetCol, targetRow));
+        if (attacked != null){
+            turnQueue[(activPlayerIndex + 1) % 2].aliveFigures.remove(attacked);
+        }
+        if (Figure.isPositionChecked(activPlayer.king.position, turnQueue[(activPlayerIndex + 1) % 2].aliveFigures)){
+            selectedFigure.moveTo(leaving);
+            if (attacked != null)
+                addFigure(attacked);
+            return false;
+        }
+        return true;
+    }
+
+    private GameResponds getLoseRespond(Factions faction){
+        if (faction == Factions.WHITE){
+            return GameResponds.BLACK_WIN;
+        }
+        return GameResponds.WHITE_WIN;
     }
 
     /**
@@ -221,79 +247,80 @@ public class Game {
         return selectedFigure;
     }
 
+    //TODO: rewrite
     /**
-     * @return figure placement next scope:
-     * -name of activ player faction: figure_code figure_col figure_row; next figure
-     * -other player same scope from new line
+     * @return string with player configuration in one line separated with space. Each player will be writing next scope
+     * player <player_faction> <figure_code> <figure_column> <figure_row> <next_figure_code> <next_figure_column> <next_figure_row> ...
      */
     public String getGameConfiguration(){
         StringBuilder result = new StringBuilder();
-        for (int i = activPlayerIndex; i <= activPlayerIndex + 1; i++){
-            Player p = turnQueue[i % turnQueue.length];
-            result.append(Figure.getFactionName(p.faction)).append(": ");
-            for (Figure fig: p.aliveFigures){
-                result.append(fig.getNotationCode()).append(" ").append(fig.getPosition().getCol()).append(" ").
-                        append(fig.getPosition().getRow()).append("; ");
+        for (int i = 0; i < 2; i++){
+            result.append("player ").append(Figure.getFactionName(turnQueue[i].faction)).append(" ");
+            result.append(turnQueue[i].king.getNotationCode()).append(" ").
+                    append(turnQueue[i].king.getPosition().toString()).append(" ");
+            for (Figure figure : turnQueue[i].aliveFigures){
+                result.append(figure.getNotationCode()).append(" ").
+                        append(figure.getPosition().toString()).append(" ");
             }
-            if (i == activPlayerIndex)
-                result.append("\n");
         }
         return result.toString();
     }
 
-    /**
-     * If this function get correct configuration reinit fields of this game according to configuration,
-     * else throws Exception.
-     * @param configuration  String with two lines:
-     *                      activ player configuration
-     *                      next player configuration
-     * Every player configuration must be given next scope: faction_name: figure_code figure_column figure_row;
-     *                       next_figure_code next_figure_column next_figure_row; ... ;
-     */
+    //TODO: rewrite
     public void readBoardConfigurationToThis(String configuration){
-        String[] playersConfigs = configuration.split("\n+");
-        HexagonalMap newBoard = new HexagonalMap();
-        Player[] newTurnQueue = new Player[2];
-        if (playersConfigs.length != 2){
-            throw new RuntimeException("Too much or too little players in configuration for this game version. " +
-                    "If 2 was passed, make sure that there is no only players separation new line.");
-        }
-        for (int i = 0; i < 2; i++){
-            String [] playerConfig = playersConfigs[i].split(": +");
-            Factions curFaction = Figure.getFactionByName(playerConfig[0]);
-            if (curFaction == Factions.NO_FIGURE){
-                throw new RuntimeException("Unknown player faction.");
-            }
-            newTurnQueue[i] = new Player(curFaction);
-            for (String figureConfig : playersConfigs[1].split("; +")){
-                String[] figureStats = figureConfig.split(" +");
-                HexagonalMap.Position newFigurePosition = newBoard.getCellState((char) Integer.parseInt(figureStats[1]),
-                        Integer.parseInt(figureStats[2]));
-                if (newFigurePosition.getFigure() != null){
-                    throw new RuntimeException("Two or more figures placed to one position");
-                }
-                Figure newFigure = (figureIneters[Arrays.binarySearch(Figure.getNotationCodes(), figureStats[0])]).apply(curFaction, newFigurePosition);
-                if (newFigure.getClass() == Figure.King.class){
-                    if (newTurnQueue[i].king != null){
-                        throw new RuntimeException("Player can not have to kings.");
-                    }
-                    newTurnQueue[i].king = (Figure.King) newFigure;
-                } else {
-                    newTurnQueue[i].aliveFigures.add(newFigure);
-                }
-                newBoard.setFigure(newFigurePosition, newFigure);
-            }
-            if (newTurnQueue[i].king == null){
-                throw new RuntimeException("Each player must have king.");
-            }
-        }
-        this.turnQueue = newTurnQueue;
-        this.board = newBoard;
-        this.activPlayerIndex = 0;
-        this.activPlayer = this.turnQueue[0];
-        this.selectedFigure = null;
-        this.isPawnChangingRequired = false;
-        this.algebraicNotation = new ArrayList<String>();
+        return;
+//        if (configuration.isBlank()){
+//            throw new RuntimeException("Configuration can not be empty or blank.");
+//        }
+//        Player[] newTurnQueue = new Player[2];
+//        HexagonalMap newBoard = new HexagonalMap();
+//        int playerIndex = 0;
+//        String[] configParts = configuration.split(" *(\n|/|\\|:|;)+ *");
+//        if (!configParts[0].equals("player")){
+//            throw new RuntimeException("Configuration must start with player.");
+//        }
+//        int partInd = 1;
+//        while (partInd < configParts.length){
+//            String configPart = configParts[partInd];
+//            Factions f = Figure.getFactionByName(configPart);
+//            if (f == Factions.NO_FIGURE){
+//                throw new RuntimeException("Unknown faction: " + configPart + ".");
+//            }
+//            Player newPlayer = new Player(f);
+//            partInd++;
+//            while (partInd < configParts.length){
+//                if (configParts.length - partInd < 3){
+//                    throw new RuntimeException("Can not continue reading configuration.\n " +
+//                            "Make sure that each player has at least king and each figure has three parameters");
+//                }
+//                String figureCode = configParts[partInd];
+//                String col = configParts[partInd + 1];
+//                String row = configParts[partInd + 2];
+//                if (figureCode.equals("player")){
+//                    if (turnQueue[playerIndex].faction == Figure.getFactionByName(col)){
+//                        throw new RuntimeException("")
+//                    }
+//                    partInd++;
+//                    playerIndex++;
+//                    break;
+//                }
+//                int figureConstrInd = Arrays.binarySearch(Figure.getNotationCodes(), figureCode);
+//                if (figureConstrInd < 0){
+//                    throw new RuntimeException("Unknown figure code " + configPart + ".");
+//                }
+//                if (configParts.length - partInd < 3){
+//                    throw new RuntimeException("Cannot read another figure.");
+//                }
+//                Figure newFigure = figureIneters[figureConstrInd].apply(f, newBoard.getCellState());
+//            }
+//        }
+//        this.turnQueue = newTurnQueue;
+//        this.board = newBoard;
+//        this.activPlayerIndex = 0;
+//        this.activPlayer = this.turnQueue[0];
+//        this.selectedFigure = null;
+//        this.isPawnChangingRequired = false;
+//        this.algebraicNotation = new ArrayList<String>();
     }
 
     public String getAlgebraicNotation(){
