@@ -15,12 +15,6 @@ public class FileContactor {
         return ImageIO.read(new File(path));
     }
 
-    public static void saveBoardConfig(String filePath, Game game) throws Exception{
-        FileWriter fw = new FileWriter(filePath);
-        fw.write(game.getGameConfiguration());
-        fw.close();
-    }
-
     public static void saveNotation(String filePath, String notation) throws Exception{
         FileWriter fw = new FileWriter(filePath);
         fw.write(notation);

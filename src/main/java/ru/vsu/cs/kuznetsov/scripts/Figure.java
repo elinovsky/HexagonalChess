@@ -213,19 +213,23 @@ public abstract class Figure {
 
         @Override
         public void moveTo(HexagonalMap.Position cell) {
-            if (Math.abs(cell.getRow() - position.getRow()) == 2 && canDoLongStep){
-//                Figure left = actionField.getPosAfterPath(position, new int[]{forwardDirection, forwardDirection - 1}).getFigure();
-//                Figure right = actionField.getPosAfterPath(position, new int[]{forwardDirection, forwardDirection + 1}).getFigure();
-//                if (left != null && left.getClass() == this.getClass()){
-//                    Pawn p = (Pawn) left;
-//                    p.inPassing = new HexagonalMap.Position(this, actionField.getPositionByDir(position, forwardDirection));
-//                }
-//                if (right != null && right.getClass() == this.getClass()){
-//                    Pawn p = (Pawn) right;
-//                    p.inPassing = new HexagonalMap.Position(this, actionField.getPositionByDir(position, forwardDirection));
-//                }
+            if (position.getCol() >= 'f' && cell.getCol() >= position.getCol() ||
+                    position.getCol() <= 'f' && cell.getCol() <= position.getCol()) {
+                canDoLongStep = false;
             }
-            canDoLongStep = false;
+//            if (Math.abs(cell.getRow() - position.getRow()) == 2){
+//                super.moveTo(actionField.getPositionByDir(position, forwardDirection));
+//                for (int i = forwardDirection - 1; i <= forwardDirection + 1; i+=4){
+//                    Figure fig = actionField.getPositionByDir(position, forwardDirection).getFigure();
+//                    if (fig != null) {
+//                        System.out.println(fig.getClass() == this.getClass());
+//                    }
+//                    if (fig != null && fig.getClass() == this.getClass()){
+//                        System.out.println(1);
+//                        ((Pawn)fig).inPassing = this.position;
+//                    }
+//                }
+//            }
             super.moveTo(cell);
         }
 
@@ -417,13 +421,11 @@ public abstract class Figure {
 
         private boolean isAttacked = false;
 
-        private List<Integer> availableDirections;
-        private List<int[]> availableDiagonals;
+        private List <HexagonalMap.Position> availableMoves;
 
         public King(HexagonalMap actionField, HexagonalMap.Position position, Factions faction){
             super(actionField, position, faction);
-            availableDirections = Arrays.asList(0, 1, 2, 3, 4, 5);
-            availableDiagonals = Arrays.asList(pathsToDiagonal);
+            availableMoves = new ArrayList<>();
         }
 
         @Override
@@ -439,39 +441,61 @@ public abstract class Figure {
          * @param hostiles - List of enemy figures.
          */
         public void updateAvailablePositions(List<Figure> hostiles){
-            availableDirections = IntStream.rangeClosed(0, 5).
-                    filter((int a)->(!isPositionChecked(actionField.getPositionByDir(position, a), hostiles))).
-                    boxed().collect(Collectors.toList());
-            availableDiagonals = Arrays.stream(pathsToDiagonal).filter((a) ->
-                    (!isPositionChecked(actionField.getPosAfterPath(position, a), hostiles))).collect(Collectors.toList());
+            availableMoves = new ArrayList<>();
+            for (int dirCounter = 0; dirCounter < 6; dirCounter++){
+                HexagonalMap.Position pos = position;
+                for (int dir = dirCounter; dir <= dirCounter + 1; dir++) {
+                    pos = actionField.getPositionByDir(pos, dir);
+                    if (pos == null) {
+                        break;
+                    }
+                    HexagonalMap.Position leaving = position;
+                    Figure replacing = pos.getFigure();
+                    if (replacing != null && replacing.faction == this.faction) {
+                        continue;
+                    } else if (replacing != null) {
+                        hostiles.remove(replacing);
+                    }
+                    moveTo(pos);
+                    if (!isPositionChecked(pos, hostiles)) {
+                        availableMoves.add(pos);
+                    }
+                    moveTo(leaving);
+                    if (replacing != null) {
+                        actionField.setFigure(pos, replacing);
+                        hostiles.add(replacing);
+                    }
+                }
+            }
             isAttacked = isPositionChecked(position, hostiles);
         }
 
         @Override
         public List<HexagonalMap.Position> getMoveOptions() {
-            List<HexagonalMap.Position> result = new ArrayList<>();
-            for (int dir : availableDirections){
-                HexagonalMap.Position pos = actionField.getPositionByDir(position, dir);
-                if (pos != null && (pos.getFigure() == null ||pos.getFigure() != null
-                        && pos.getFigure().getFaction() != faction)){
-                    result.add(pos);
-                }
-            }
-            for (int[] path : availableDiagonals){
-                HexagonalMap.Position pos = actionField.getPosAfterPath(position, path);
-                if (pos != null && (pos.getFigure() == null ||pos.getFigure() != null
-                        && pos.getFigure().getFaction() != faction)){
-                    result.add(pos);
-                }
-            }
-            return result;
+//            List<HexagonalMap.Position> result = new ArrayList<>();
+//            for (int dir : availableDirections){
+//                HexagonalMap.Position pos = actionField.getPositionByDir(position, dir);
+//                if (pos != null && (pos.getFigure() == null ||pos.getFigure() != null
+//                        && pos.getFigure().getFaction() != faction)){
+//                    result.add(pos);
+//                }
+//            }
+//            for (int[] path : availableDiagonals){
+//                HexagonalMap.Position pos = actionField.getPosAfterPath(position, path);
+//                if (pos != null && (pos.getFigure() == null ||pos.getFigure() != null
+//                        && pos.getFigure().getFaction() != faction)){
+//                    result.add(pos);
+//                }
+//            }
+//            return result;
+            return availableMoves;
         }
 
         boolean isUnderMate(List<Figure> hostiles, List<Figure> allys){
             if (!isAttacked) {
                 return false;
             }
-            if (availableDiagonals.isEmpty() || availableDirections.isEmpty()) {
+            if (!availableMoves.isEmpty()) {
                 return true;
             }
             List <Figure> attackingFigures = new ArrayList<>();

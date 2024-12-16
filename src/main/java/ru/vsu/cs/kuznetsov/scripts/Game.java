@@ -28,7 +28,7 @@ public class Game {
     private List <String> algebraicNotation;
     public static final Factions[] gameFactions = new Factions[]{Factions.WHITE, Factions.BLACK};
 
-    public BiFunction<Factions, HexagonalMap.Position, Figure>[] figureIneters = new BiFunction[]{
+    public final BiFunction<Factions, HexagonalMap.Position, Figure>[] figureIneters = new BiFunction[]{
             (f, p)->{return new Figure.Pawn(this.board, (HexagonalMap.Position) p, (Factions) f);},
             (f, p)->{return new Figure.Knight(this.board, (HexagonalMap.Position) p, (Factions) f);},
             (f, p)->{return new Figure.Bishop(this.board, (HexagonalMap.Position) p, (Factions) f);},
@@ -45,6 +45,15 @@ public class Game {
             turnQueue[i] = initPlayer(gameFactions[i]);
         }
         activPlayer = turnQueue[activPlayerIndex];
+        updateKingsMoves();
+    }
+
+    private void updateKingsMoves(){
+        for (int i = 0; i < turnQueue.length; i++){
+            List<Figure> figures = new ArrayList<>(turnQueue[(i + 1) % turnQueue.length].aliveFigures);
+            figures.add(turnQueue[(i + 1) % turnQueue.length].king);
+            turnQueue[i].king.updateAvailablePositions(figures);
+        }
     }
 
     /**
@@ -146,11 +155,7 @@ public class Game {
                 return GameResponds.PAWN_CHANGE_REQUIRED;
             }
             //turn passing, king check
-            for (int i = 0; i < 2; i++) {
-                List <Figure> attackers = new ArrayList<>(turnQueue[(i + 1) % 2].aliveFigures);
-                attackers.add(turnQueue[(i + 1) % 2].king);
-                turnQueue[i].king.updateAvailablePositions(attackers);
-            }
+            updateKingsMoves();
             List <Figure> allActiveFigures = new ArrayList<>(activPlayer.aliveFigures);
             allActiveFigures.add(activPlayer.king);
             if (opposite.king.isUnderMate(allActiveFigures, opposite.aliveFigures)){
@@ -237,9 +242,10 @@ public class Game {
         }
         turnQueue[activPlayerIndex].aliveFigures.set(oldIndex, newFigure);
         board.setFigure(oldFigure.getPosition(), newFigure);
-        if (oldFigure.getClass() == Figure.Pawn.class){
+        if (oldFigure.getClass() == Figure.Pawn.class && isPawnChangingRequired){
             selectedFigure = null;
             isPawnChangingRequired = false;
+            giveTurnFurther();
         }
     }
 
@@ -248,27 +254,27 @@ public class Game {
     }
 
     //TODO: rewrite
-    /**
-     * @return string with player configuration in one line separated with space. Each player will be writing next scope
-     * player <player_faction> <figure_code> <figure_column> <figure_row> <next_figure_code> <next_figure_column> <next_figure_row> ...
-     */
-    public String getGameConfiguration(){
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < 2; i++){
-            result.append("player ").append(Figure.getFactionName(turnQueue[i].faction)).append(" ");
-            result.append(turnQueue[i].king.getNotationCode()).append(" ").
-                    append(turnQueue[i].king.getPosition().toString()).append(" ");
-            for (Figure figure : turnQueue[i].aliveFigures){
-                result.append(figure.getNotationCode()).append(" ").
-                        append(figure.getPosition().toString()).append(" ");
-            }
-        }
-        return result.toString();
-    }
+//    /**
+//     * @return string with player configuration in one line separated with space. Each player will be writing next scope
+//     * player <player_faction> <figure_code> <figure_column> <figure_row> <next_figure_code> <next_figure_column> <next_figure_row> ...
+//     */
+//    public String getGameConfiguration(){
+//        StringBuilder result = new StringBuilder();
+//        for (int i = 0; i < 2; i++){
+//            result.append("player ").append(Figure.getFactionName(turnQueue[i].faction)).append(" ");
+//            result.append(turnQueue[i].king.getNotationCode()).append(" ").
+//                    append(turnQueue[i].king.getPosition().toString()).append(" ");
+//            for (Figure figure : turnQueue[i].aliveFigures){
+//                result.append(figure.getNotationCode()).append(" ").
+//                        append(figure.getPosition().toString()).append(" ");
+//            }
+//        }
+//        return result.toString();
+//    }
 
     //TODO: rewrite
-    public void readBoardConfigurationToThis(String configuration){
-        return;
+//    public void readBoardConfigurationToThis(String configuration){
+//        return;
 //        if (configuration.isBlank()){
 //            throw new RuntimeException("Configuration can not be empty or blank.");
 //        }
@@ -321,13 +327,13 @@ public class Game {
 //        this.selectedFigure = null;
 //        this.isPawnChangingRequired = false;
 //        this.algebraicNotation = new ArrayList<String>();
-    }
+//    }
 
-    public String getAlgebraicNotation(){
-        StringBuilder res = new StringBuilder();
-        for (String line : algebraicNotation){
-            res.append(line).append('\n');
-        }
-        return res.toString();
-    }
+//    public String getAlgebraicNotation(){
+//        StringBuilder res = new StringBuilder();
+//        for (String line : algebraicNotation){
+//            res.append(line).append('\n');
+//        }
+//        return res.toString();
+//    }
 }

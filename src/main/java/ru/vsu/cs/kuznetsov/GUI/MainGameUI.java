@@ -13,14 +13,10 @@ public class MainGameUI extends JFrame{
     private JPanel mainPanel;
     private JPanel graphicPanel;
     private JLabel messageLable;
-    private JButton saveNotationButton;
     private JScrollPane gameScene;
     private JPanel pawnChangingDialog;
     private JButton submitButton;
     private JPanel optionsPanel;
-    private JTextArea notationTextArea;
-    private JButton saveBoardButton;
-    private JButton loadGameButton;
 
     private Game game;
     private Color[] cellColors = new Color[]{new Color(0xe2e2e2),
@@ -28,80 +24,32 @@ public class MainGameUI extends JFrame{
     private int cellWidth = 60;
     private int cellHeight = 50;
     private boolean pawnChanging = false;
+    pawnChangingChoose pChCh;
 
-    ActionListener pawnSelectListener = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-//            game.replace(game.getSelectedFigure(), new Figure.Pawn());
-        }
-    };
+    private int chooseFinalizer(int option){
+        game.replace(game.getSelectedFigure(),
+                game.figureIneters[option + 1].apply(game.getActivPlayerFaction(),
+                        game.getSelectedFigure().getPosition()));
+        messageLable.setText(getTurnTip(game.getActivPlayerFaction()));
+        pChCh.dispose();
+        paintBoard();
+        return 0;
+    }
 
     public MainGameUI(){
         game = new Game();
         CardLayout cardLayout = (CardLayout) mainPanel.getLayout();
         cardLayout.show(mainPanel, "gameScene");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setSize(800, 700);
-        notationTextArea.setEditable(false);
+        setSize(600, 650);
         setContentPane(mainPanel);
         setVisible(true);
         setTitle("Шахматы Глинского. Выбирать фигуры и ходить ими нажатием мыши!");
         //TODO: remove after adding features
         JOptionPane.showMessageDialog(null,
                 "Здравствуйте! Это не завершённая версия приложения.\n" +
-                        "Не реализованы некоторые возможности пешек. \n" +
+                        "Есть баг связанный с длинным шагом пешки, отсутствует взятие в проходе. \n" +
                         "Возможны баги.");
-        //Event listener initializing
-        saveNotationButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser chooser = new JFileChooser();
-                chooser.setFileFilter(new FileNameExtensionFilter("Text files", "txt"));
-                int returnVal = chooser.showSaveDialog(null);
-                if (returnVal == JFileChooser.APPROVE_OPTION){
-                    try {
-                        FileContactor.saveNotation(chooser.getSelectedFile().getPath(), game.getAlgebraicNotation());
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(null,
-                                "Не удалось отрыть файл " + chooser.getSelectedFile().getPath()
-                                        + "или записать его.\n" + ex.getMessage());
-                    }
-                }
-            }
-        });
-        loadGameButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser chooser = new JFileChooser();
-                chooser.setFileFilter(new FileNameExtensionFilter("Text files", "txt"));
-                int returnVal = chooser.showOpenDialog(null);
-                if (returnVal == JFileChooser.APPROVE_OPTION){
-                    try {
-                        game.readBoardConfigurationToThis(
-                                FileContactor.readGameConfiguration(chooser.getSelectedFile().getPath()));
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(null, ex.getMessage());
-                    }
-                }
-            }
-        });
-        saveBoardButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser chooser = new JFileChooser();
-                chooser.setFileFilter(new FileNameExtensionFilter("Text files", "txt"));
-                int returnVal = chooser.showSaveDialog(null);
-                if (returnVal == JFileChooser.APPROVE_OPTION){
-                    try {
-                        FileContactor.saveNotation(chooser.getSelectedFile().getPath(), game.getGameConfiguration());
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(null,
-                                "Не удалось отрыть файл " + chooser.getSelectedFile().getPath()
-                                        + "или записать его.\n" + ex.getMessage());
-                    }
-                }
-            }
-        });
         //Mouse listener, reacting only on click, defining which cell was pressed.
         //Calls UI reaction function on game event.
         graphicPanel.addMouseListener(new MouseAdapter() {
@@ -218,7 +166,6 @@ public class MainGameUI extends JFrame{
             }
             case TURN_DONE->{
                 messageLable.setText(getTurnTip(game.getActivPlayerFaction()));
-                notationTextArea.setText(game.getAlgebraicNotation());
                 paintBoard();
             }
             case SELF_ENDANGERING->{
@@ -227,8 +174,8 @@ public class MainGameUI extends JFrame{
                 paintBoard();
             }
             case PAWN_CHANGE_REQUIRED->{
-                System.out.println(1);
-                //TODO: find out how do dialog window and add here
+                showPawnChangingDialog(game.getActivPlayerFaction());
+                paintBoard();
             }
         }
     }
@@ -280,21 +227,6 @@ public class MainGameUI extends JFrame{
     }
 
     public void showPawnChangingDialog(Factions faction){
-        CardLayout layout = (CardLayout) mainPanel.getLayout();
-        layout.show(mainPanel, "pawnChangingDilog");
-        Graphics g = optionsPanel.getGraphics();
-        String[] figuresNames = new String[]{"Queen", "Rook", "Bishop", "Knight"};
-        g.setColor(Color.MAGENTA);
-        g.drawRect(10, 10, 10, 10);
-        for (int i = 0; i < figuresNames.length; i++){
-            String str = Figure.getFactionName(faction) + figuresNames[i] + ".png";
-            try {
-                Image img = FileContactor.readImage(str);
-                g.drawImage(img, 61 * i, 0, 61, 61, null);
-            } catch (Exception ex){
-                JOptionPane.showMessageDialog(null,
-                        "Не удалось открыть изображение " + str + " \n" + ex.getMessage());
-            }
-        }
+        pChCh = new pawnChangingChoose(this, Figure.getFactionName(faction), this::chooseFinalizer);
     }
 }
