@@ -122,15 +122,14 @@ public abstract class Figure {
      * @return true if position checked by any figure false else
      */
     public static boolean isPositionChecked(HexagonalMap.Position pos, List<Figure> figures){
-        return figures.stream().anyMatch(a->a.getMoveOptions().contains(pos));
-//            boolean isPosChecked = false;
-//            for (Figure enemy : figures){
-//                if (enemy.getAttackingCells().contains(pos)){
-//                    isPosChecked = true;
-//                    break;
-//                }
-//            }
-//            return isPosChecked;
+        boolean isPosChecked = false;
+        for (Figure enemy : figures){
+            if (enemy.getAttackingCells().contains(pos)){
+                isPosChecked = true;
+                break;
+            }
+        }
+        return isPosChecked;
     }
 
     @Override
@@ -281,8 +280,7 @@ public abstract class Figure {
             };
             for (int[] path : gShapedPaths){
                 HexagonalMap.Position pos = actionField.getPosAfterPath(position, path);
-                if (pos != null && (pos.getFigure() == null ||
-                        pos.getFigure() != null && pos.getFigure().getFaction() == this.faction)){
+                if (pos != null){
                     res.add(pos);
                 }
             }
@@ -321,7 +319,7 @@ public abstract class Figure {
             List<HexagonalMap.Position> res = new ArrayList<>();
             for (int[] path : pathsToDiagonal){
                 res.addAll(getCellsFromLineByPredicate(actionField.getPosAfterPathAnyTimes(position, path),
-                        (a)->(a.getFigure().getFaction() == this.getFaction())));
+                        (a)->(a.getFigure() != null)));
             }
             return res;
         }
@@ -357,7 +355,7 @@ public abstract class Figure {
             List<HexagonalMap.Position> res = new ArrayList<>();
             for (int dir = 0; dir < 6; dir++){
                 res.addAll(getCellsFromLineByPredicate(actionField.getAllPosThroughDir(position, dir),
-                        (a)->(a.getFigure().getFaction() == this.getFaction())));
+                        (a)->(a.getFigure() != null)));
             }
             return res;
         }
@@ -397,11 +395,11 @@ public abstract class Figure {
             List<HexagonalMap.Position> result = new ArrayList<>();
             for (int dir = 0; dir < 6; dir++){
                 result.addAll(getCellsFromLineByPredicate(actionField.getAllPosThroughDir(position, dir),
-                        (a)->(a.getFigure().getFaction() == this.getFaction())));
+                        (a)->(a.getFigure().getFaction() != null)));
             }
             for (int[] path : pathsToDiagonal){
                 result.addAll(getCellsFromLineByPredicate(actionField.getPosAfterPathAnyTimes(position, path),
-                        (a)->(a.getFigure().getFaction() == this.getFaction())));
+                        (a)->(a.getFigure() != null)));
             }
             return result;
         }
@@ -492,11 +490,8 @@ public abstract class Figure {
         }
 
         boolean isUnderMate(List<Figure> hostiles, List<Figure> allys){
-            if (!isAttacked) {
+            if (!isAttacked || !availableMoves.isEmpty()) {
                 return false;
-            }
-            if (!availableMoves.isEmpty()) {
-                return true;
             }
             List <Figure> attackingFigures = new ArrayList<>();
             for (Figure enemy : hostiles){
