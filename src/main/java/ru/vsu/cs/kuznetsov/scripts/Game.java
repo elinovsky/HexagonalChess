@@ -1,8 +1,6 @@
 package ru.vsu.cs.kuznetsov.scripts;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -77,7 +75,6 @@ public class Game {
     private Player initPlayer(Factions faction){
         Player newPlayer = new Player(faction);
         if (faction == Factions.BLACK){
-//            newPlayer.aliveFigures.add(new Figure.King(board, board.getCellState('g', 10), faction));
             for (int i = 11; i >= 9; i--) {
                 newPlayer.aliveFigures.add(new Figure.Bishop(board, board.getCellState('f', i), faction));
             }
@@ -92,7 +89,6 @@ public class Game {
                         Figure.Pawn(board, board.getCellState(HexagonalMap.validLetters[i], 7), faction));
             }
         } else {
-//            newPlayer.aliveFigures.add(new Figure.King(board, board.getCellState('g', 1), faction));
             for (int i = 3; i >= 1; i--) {
                 newPlayer.aliveFigures.add(new Figure.Bishop(board, board.getCellState('f', i), faction));
             }
@@ -158,7 +154,8 @@ public class Game {
             updateKingsMoves();
             List <Figure> allActiveFigures = new ArrayList<>(activPlayer.aliveFigures);
             allActiveFigures.add(activPlayer.king);
-            if (opposite.king.isUnderMate(allActiveFigures, opposite.aliveFigures)){
+            if (opposite.king.isUnderMate(allActiveFigures, opposite.aliveFigures) ||
+                    opposite.king.getMoveOptions().isEmpty() && opposite.aliveFigures.isEmpty()){
                 return getLoseRespond(opposite.faction);
             }
             if (activPlayer.aliveFigures.isEmpty() && opposite.aliveFigures.isEmpty())

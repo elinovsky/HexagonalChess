@@ -440,28 +440,28 @@ public abstract class Figure {
          */
         public void updateAvailablePositions(List<Figure> hostiles){
             availableMoves = new ArrayList<>();
+            HexagonalMap.Position leaving = position;
             for (int dirCounter = 0; dirCounter < 6; dirCounter++){
                 HexagonalMap.Position pos = position;
-                for (int dir = dirCounter; dir <= dirCounter + 1; dir++) {
-                    pos = actionField.getPositionByDir(pos, dir);
-                    if (pos == null) {
+                for (int dir = 0; dir <= 1; dir++){
+                    pos = actionField.getPositionByDir(pos, dirCounter + dir);
+                    if (pos == null){
                         break;
                     }
-                    HexagonalMap.Position leaving = position;
-                    Figure replacing = pos.getFigure();
-                    if (replacing != null && replacing.faction == this.faction) {
+                    Figure removing = pos.getFigure();
+                    if (removing != null && removing.faction == this.faction){
                         continue;
-                    } else if (replacing != null) {
-                        hostiles.remove(replacing);
+                    } else if (removing != null){
+                        hostiles.remove(removing);
                     }
                     moveTo(pos);
-                    if (!isPositionChecked(pos, hostiles)) {
+                    if  (!isPositionChecked(pos, hostiles)) {
                         availableMoves.add(pos);
                     }
                     moveTo(leaving);
-                    if (replacing != null) {
-                        actionField.setFigure(pos, replacing);
-                        hostiles.add(replacing);
+                    if (removing != null){
+                        hostiles.add(removing);
+                        actionField.setFigure(pos, removing);
                     }
                 }
             }
@@ -513,11 +513,11 @@ public abstract class Figure {
             } else {
                 dirInd = 1;
             }
-            for (int dir = dirInd; dir <= dirInd + 1; dir++)
+            for (int dir = dirInd; dir < dirInd + 6; dir++)
                 if (attackingPosition.addAll(getCellsFromLineByPredicate(
                         actionField.getAllPosThroughDir(position, dir), (a)->(attacker.equals(a))))) break;
             if (attackingPosition.isEmpty()){
-                for (int diagInd = dirInd; diagInd <= dirInd + 2; diagInd++)
+                for (int diagInd = dirInd; diagInd < dirInd + 6; diagInd++)
                     if (attackingPosition.addAll(getCellsFromLineByPredicate(
                             actionField.getPosAfterPathAnyTimes(position, pathsToDiagonal[diagInd % 6]),
                             (a)->(attacker.equals(a))))) break;
