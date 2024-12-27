@@ -1,0 +1,1 @@
+player white K g, 1 B h, 3 R a, 1 N f, 7 N l, 4 Q c, 1 P e, 7 P k, 1 player black K g, 10 B f, 9 R h, 6 R e, 4 N g, 5 Q c, 6 P b, 7 P b, 4 P d, 7 P g, 6 P i, 6 P i, 7 P k, 4 
