@@ -45,11 +45,6 @@ public class MainGameUI extends JFrame{
         setContentPane(mainPanel);
         setVisible(true);
         setTitle("Шахматы Глинского. Выбирать фигуры и ходить ими нажатием мыши!");
-        //TODO: remove after adding features
-        JOptionPane.showMessageDialog(null,
-                "Здравствуйте! Это не завершённая версия приложения.\n" +
-                        "Есть баг связанный с длинным шагом пешки, отсутствует взятие в проходе. \n" +
-                        "Возможны баги.");
         //Mouse listener, reacting only on click, defining which cell was pressed.
         //Calls UI reaction function on game event.
         graphicPanel.addMouseListener(new MouseAdapter() {

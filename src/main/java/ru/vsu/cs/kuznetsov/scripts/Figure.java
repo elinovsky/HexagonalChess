@@ -158,12 +158,12 @@ public abstract class Figure {
     public static class Pawn extends Figure{
         private int forwardDirection;
         private HexagonalMap.Position inPassing;
-        private boolean canDoLongStep;
+        private HexagonalMap.Position startPosition;
 
         public Pawn(HexagonalMap actionField, HexagonalMap.Position position, Factions faction){
             super(actionField, position, faction);
             inPassing = null;
-            canDoLongStep = true;
+            startPosition = position;
             if (faction == Factions.WHITE) {
                 forwardDirection = 0;
             } else {
@@ -178,7 +178,7 @@ public abstract class Figure {
             if (pos != null && pos.getFigure() == null){
                 res.add(pos);
                 pos = actionField.getPositionByDir(pos, forwardDirection);
-                if (canDoLongStep && pos != null && pos.getFigure() == null) {
+                if (position == startPosition && pos != null && pos.getFigure() == null) {
                     res.add(pos);
                 }
             }
@@ -208,28 +208,6 @@ public abstract class Figure {
         @Override
         public String getImageName() {
             return getFactionName(this.faction) + "Pawn.png";
-        }
-
-        @Override
-        public void moveTo(HexagonalMap.Position cell) {
-            if (position.getCol() >= 'f' && cell.getCol() >= position.getCol() ||
-                    position.getCol() <= 'f' && cell.getCol() <= position.getCol()) {
-                canDoLongStep = false;
-            }
-//            if (Math.abs(cell.getRow() - position.getRow()) == 2){
-//                super.moveTo(actionField.getPositionByDir(position, forwardDirection));
-//                for (int i = forwardDirection - 1; i <= forwardDirection + 1; i+=4){
-//                    Figure fig = actionField.getPositionByDir(position, forwardDirection).getFigure();
-//                    if (fig != null) {
-//                        System.out.println(fig.getClass() == this.getClass());
-//                    }
-//                    if (fig != null && fig.getClass() == this.getClass()){
-//                        System.out.println(1);
-//                        ((Pawn)fig).inPassing = this.position;
-//                    }
-//                }
-//            }
-            super.moveTo(cell);
         }
 
         @Override
